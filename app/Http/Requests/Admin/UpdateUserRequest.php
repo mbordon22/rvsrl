@@ -28,9 +28,28 @@ class UpdateUserRequest extends FormRequest
             'email' => ['required','email', 'unique:users,email,'.$id.',id,deleted_at,NULL'],
             'phone' => ['nullable','numeric','digits_between:6,15', 'unique:users,phone,'.$id.',id,deleted_at,NULL'],
             'postal_code' => ['nullable','numeric'],
-            'dob' => ['date'],
+            'dob' => [
+                'nullable',
+                'string',
+                function ($attribute, $value, $fail) {
+                    $format = 'd/m/Y';
+                    $parsedDate = \DateTime::createFromFormat($format, $value);
+                    if (!$parsedDate || $parsedDate->format($format) !== $value) {
+                        $fail("The $attribute must be a valid date in the format dd/mm/yyyy.");
+                    }
+                },
+            ],
             'dni' => ['nullable','numeric'],
-            'admission_date' => ['nullable','date'],
+            'admission_date' => ['nullable',
+                'string',
+                function ($attribute, $value, $fail) {
+                    $format = 'd/m/Y';
+                    $parsedDate = \DateTime::createFromFormat($format, $value);
+                    if (!$parsedDate || $parsedDate->format($format) !== $value) {
+                        $fail("The $attribute must be a valid date in the format dd/mm/yyyy.");
+                    }
+                },
+            ],
         ];
     }
 }

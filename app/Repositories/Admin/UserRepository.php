@@ -100,6 +100,10 @@ class UserRepository extends BaseRepository
                 'location' => $request['location'],
             ]);
 
+            if($request['password']) {
+                $user->update(['password' => Hash::make($request['password'])]);
+            }
+
             $user = $this->model->findOrFail($id);
             if ($user->system_reserve) {
                 return redirect()->back()->with('error', __('Este usuario no puede ser editado, ya que es un usuario de sistema'));

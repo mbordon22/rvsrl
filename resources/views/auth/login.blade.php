@@ -12,8 +12,8 @@
                     <div>
                         <div>
                             <a class="logo" href="{{ route('admin.dashboard') }}">
-                                <img class="img-fluid for-dark" style="height: 150px" src="{{ asset('assets/images/logo/logo_empresa.png') }}" alt="paginadelogin">
-                                <img class="img-fluid for-light" style="height: 150px" src="{{ asset('assets/images/logo/logo_empresa.png') }}" alt="paginadelogin">
+                                <img class="img-fluid for-dark" style="height: 150px" src="{{ asset('assets/images/logo/logo_rv.png') }}" alt="paginadelogin">
+                                <img class="img-fluid for-light" style="height: 150px" src="{{ asset('assets/images/logo/logo_rv.png') }}" alt="paginadelogin">
                             </a>
                         </div>
                         <div class="login-main">

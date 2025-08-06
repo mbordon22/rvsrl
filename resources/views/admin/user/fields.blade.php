@@ -139,34 +139,37 @@
         </div>
     </div>
 
-    @if (!isset($user->id))
-        <div class="row">
-            <div class="col-sm-6">
-                <div class="mb-3">
-                    <label>Contraseña <span> *</span></label>
-                    <input class="form-control" type="password" id="password" name="password" placeholder="Ingrese su contraseña"
-                        autocomplete="off">
-                    @error('password')
-                        <span class="text-danger">
-                            <strong>{{ $message }}</strong>
-                        </span>
-                    @enderror
-                </div>
-            </div>
-            <div class="col-sm-6">
-                <div class="mb-3">
-                    <label>Confirme contraseña <span> *</span></label>
-                    <input class="form-control" type="password" id="confirm_password" name="confirm_password"
-                        placeholder="Ingrese su contraseña nuevamente" autocomplete="off">
-                    @error('confirm_password')
-                        <span class="text-danger">
-                            <strong>{{ $message }}</strong>
-                        </span>
-                    @enderror
-                </div>
+    <div class="row">
+        @if(isset($user))
+            <hr>
+            <h5 class="mb-3">Dejar en blanco si no desea cambiar la contraseña</h5>
+        @endif
+        <div class="col-sm-6">
+            <div class="mb-3">
+                <label>Contraseña <span> *</span></label>
+                <input class="form-control" type="password" id="password" name="password" placeholder="Ingrese su contraseña"
+                    autocomplete="off">
+                @error('password')
+                    <span class="text-danger">
+                        <strong>{{ $message }}</strong>
+                    </span>
+                @enderror
             </div>
         </div>
-    @endif
+        <div class="col-sm-6">
+            <div class="mb-3">
+                <label>Confirme contraseña <span> *</span></label>
+                <input class="form-control" type="password" id="confirm_password" name="confirm_password"
+                    placeholder="Ingrese su contraseña nuevamente" autocomplete="off">
+                @error('confirm_password')
+                    <span class="text-danger">
+                        <strong>{{ $message }}</strong>
+                    </span>
+                @enderror
+            </div>
+        </div>
+    </div>
+    <hr>
 
     <div class="row">
         <div class="col-sm-6">

@@ -1,0 +1,63 @@
+@extends('layouts.simple.master')
+
+@section('css')
+<link rel="stylesheet" type="text/css" href="{{ asset('assets/css/vendors/animate.css') }}">
+<link rel="stylesheet" type="text/css" href="{{ asset('assets/css/vendors/date-picker.css') }}">
+<link rel="stylesheet" type="text/css" href="{{ asset('assets/css/vendors/dropzone.css') }}">
+@endsection
+
+@section('main_content')
+<div class="container-fluid">
+    <div class="page-title">
+        <div class="row">
+            <div class="col-6">
+                <h4>Almacenes</h4>
+            </div>
+            <div class="col-6">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">
+                            <svg class="stroke-icon">
+                                <use href="{{ asset('assets/svg/icon-sprite.svg#stroke-home') }}"></use>
+                            </svg></a></li>
+                    <li class="breadcrumb-item">Listado de Almacenes</li>
+                    <li class="breadcrumb-item active">Nuevo</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Container-fluid starts-->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between items-center">
+                    <h4>Nuevo Almacen</h4>
+                    <a href="{{route('admin.inventarios.almacenes.index')}}" class="btn btn-light mb-3">
+                        Volver al Listado de Almacenes
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="form theme-form">
+                        <form class="row g-3 custom-input" id="AlmacenForm"
+                            action="{{ route('admin.inventarios.almacenes.store') }}" method="POST" enctype="multipart/form-data">
+                            @csrf
+                            @include('admin.inventarios.almacenes.fields')
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+
+@section('scripts')
+<!-- calendar js-->
+<script src="{{ asset('assets/js/custom-validation/validation.js') }}"></script>
+<script src="{{ asset('assets/js/datepicker/date-picker/datepicker.js') }}"></script>
+<script src="{{ asset('assets/js/datepicker/date-picker/datepicker.es.js') }}"></script>
+<script src="{{ asset('assets/js/datepicker/date-picker/datepicker.custom.js') }}"></script>
+<script src="{{ asset('assets/js/dropzone/dropzone.js') }}"></script>
+<script src="{{ asset('assets/js/dropzone/dropzone-script.js') }}"></script>
+@endsection

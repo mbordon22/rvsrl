@@ -11,8 +11,8 @@
     <meta name="keywords"
         content="admin template, Riho admin template, dashboard template, flat admin template, responsive admin template, web app">
     <meta name="author" content="pixelstrap">
-    <link rel="icon" href="{{ asset('assets/images/logo/favicon_villalba.png') }}" type="image/x-icon">
-    <link rel="shortcut icon" href="{{ asset('assets/images/logo/favicon_villalba.png') }}" type="image/x-icon">
+    <link rel="icon" href="{{ asset('assets/images/logo/favicon.ico') }}" type="image/x-icon">
+    <link rel="shortcut icon" href="{{ asset('assets/images/logo/favicon.ico') }}" type="image/x-icon">
     <title>Ingenieria RV SRL - Admin</title>
     <!-- Google font-->
     <link rel="preconnect" href="https://fonts.googleapis.com">

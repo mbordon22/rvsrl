@@ -85,8 +85,17 @@ $(document).on('click', '.btn-delete', function() {
                         confirmButtonText: 'Aceptar'
                     })
                 },
-                error: function() {
-                    alert('Hubo un error al eliminar.');
+                error: function(xhr) {
+                    let message = 'Hubo un error al eliminar.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
+                    }
+                    swal({
+                        title: 'No se pudo eliminar',
+                        text: message,
+                        icon: 'error',
+                        confirmButtonText: 'Aceptar'
+                    });
                 }
             });
         }

@@ -59,6 +59,9 @@ $(document).on('click', '.edit-document-btn', function () {
         $('#edit-monto').val(data.monto);
         $('#edit-litros').val(data.litros);
         $('#edit-fecha_carga').val(data.fecha_carga ? moment(data.fecha_carga).format('DD/MM/YYYY') : '');
+        $('#edit-user_id').val(data.user_id);
+        // Refrescar selects con select2 si ya están inicializados.
+        $('#edit-vehiculo_id, #edit-user_id').trigger('change.select2');
         $('#edit-combustible-form').attr('action', `{{ url('admin/cargas-combustible') }}/${id}`);
 
         // Clear existing file previews

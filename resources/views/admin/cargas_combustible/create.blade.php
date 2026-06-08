@@ -9,7 +9,7 @@
                 <form action="{{ route('admin.cargas-combustible.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="mb-3">
-                        <label for="vehiculo_id" class="form-label">Seleccione el Vehículo</label>
+                        <label for="vehiculo_id" class="form-label text-dark">Seleccione el Vehículo</label>
                         <select name="vehiculo_id" id="vehiculo_id" class="form-control">
                             <option value="">Seleccione el vehículo</option>
                             @foreach ($vehiculos as $vehiculo)
@@ -18,7 +18,7 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="tipo_combustible" class="form-label">Tipo de Combustible</label>
+                        <label for="tipo_combustible" class="form-label text-dark">Tipo de Combustible</label>
                         <select name="tipo_combustible" id="tipo_combustible" class="form-control">
                             <option value="">Seleccione un tipo de combustible</option>
                             <option value="Nafta">Nafta</option>
@@ -27,19 +27,19 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="litros" class="form-label">Litros</label>
+                        <label for="litros" class="form-label text-dark">Litros</label>
                         <input type="number" name="litros" id="litros" class="form-control" value="" placeholder="Litros" min="0" step="0.01">
                     </div>
                     <div class="mb-3">
-                        <label for="monto" class="form-label">Monto $</label>
+                        <label for="monto" class="form-label text-dark">Monto $</label>
                         <input type="number" name="monto" id="monto" class="form-control" value="" placeholder="Monto" min="0" step="0.01">
                     </div>
                     <div class="mb-3">
-                        <label for="fecha_carga" class="form-label">Fecha de Carga</label>
+                        <label for="fecha_carga" class="form-label text-dark">Fecha de Carga</label>
                         <input type="text" name="fecha_carga" id="fecha_carga" class="datepicker-here form-control" data-language="es" value="{{date('d/m/Y')}}" autocomplete="off">
                     </div>
                     <div class="mb-3">
-                        <label for="user_id" class="form-label">Usuario que realizó la carga</label>
+                        <label for="user_id" class="form-label text-dark">Usuario que realizó la carga</label>
                         <select name="user_id" id="user_id" class="form-control">
                             <option value="">Seleccionar un usuario</option>
                             @foreach ($usuarios as $user)
@@ -48,7 +48,7 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="archivo" class="form-label">Imagen de la factura</label>
+                        <label for="archivo" class="form-label text-dark">Imagen de la factura</label>
                         <input type="file" name="archivo[]" id="archivo" class="form-control" multiple accept="application/pdf, image/jpeg, image/png, image/jpg">
                     </div>
                     <div class="d-flex justify-content-end mt-3">

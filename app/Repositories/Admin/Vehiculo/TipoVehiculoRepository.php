@@ -50,11 +50,21 @@ class TipoVehiculoRepository extends BaseRepository
         }
     }
 
-    public function destroyDocumento($tipo_vehiculo_id)
+    public function destroy($tipo_vehiculo_id)
     {
         DB::beginTransaction();
         try {
             $tipo_vehiculo = TipoVehiculo::findOrFail($tipo_vehiculo_id);
+
+            $vehiculosAsociados = $tipo_vehiculo->vehiculos()->count();
+            if ($vehiculosAsociados > 0) {
+                DB::rollback();
+                return response()->json([
+                    'success' => false,
+                    'message' => "No se puede eliminar este tipo de vehículo porque tiene {$vehiculosAsociados} vehículo(s) asociado(s). Reasigná o eliminá esos vehículos primero.",
+                ], 422);
+            }
+
             $tipo_vehiculo->delete();
 
             DB::commit();

@@ -74,6 +74,22 @@ class RoleController extends Controller
     }
 
     /**
+     * Show the permissions-only editor for the given role.
+     */
+    public function permissions(Role $role)
+    {
+        return view('admin.role.permissions', ['role' => $role, 'modules' => $this->getModules()]);
+    }
+
+    /**
+     * Update only the permissions of the given role.
+     */
+    public function updatePermissions(Request $request, Role $role)
+    {
+        return $this->repository->updatePermissions($request->all(), $role->id);
+    }
+
+    /**
      * Update the specified resource in storage.
      * @param Request $request
      * @param int $id

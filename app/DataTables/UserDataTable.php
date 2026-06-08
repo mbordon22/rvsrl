@@ -68,7 +68,18 @@ class UserDataTable extends DataTable
      */
     public function query(User $model): QueryBuilder
     {
-        return $model->newQuery()->where('system_reserve',0);
+        $query = $model->newQuery()->where('system_reserve', 0);
+
+        $search = trim((string) request('filter_search'));
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('dni', 'like', "%{$search}%");
+            });
+        }
+
+        return $query;
     }
 
     /**
@@ -85,7 +96,7 @@ class UserDataTable extends DataTable
                 ->addColumn(['data' => 'created_at', 'title' => __('Creado'), 'orderable' => true, 'searchable' => false])
                 ->addColumn(['data' => 'status', 'title' =>  __('Estado'), 'orderable' => true, 'searchable' => false])
                 ->addColumn(['data' => 'action', 'title' => __('Acciones'), 'orderable' => false, 'searchable' => false])
-                ->minifiedAjax()
+                ->minifiedAjax('', null, ['filter_search' => '$("#userSearch").val()'])
                 ->orderBy(1)->parameters([
                     'language' => [
                         'emptyTable' =>'No se encontraron registros',
@@ -95,6 +106,7 @@ class UserDataTable extends DataTable
                         'infoFiltered' => '(filtrado de _MAX_ total registros)',
                         'lengthMenu' => 'Mostrar _MENU_ registros',
                         'search' => 'Buscar:',
+                        'processing' => '',
                         'paginate' => [
                             'next' => 'Siguiente',
                             'previous' => 'Anterior',
@@ -102,6 +114,8 @@ class UserDataTable extends DataTable
                             'last' => 'Último'
                         ],
                     ],
+                    'searching' => false,
+                    'lengthChange' => false,
                     'drawCallback' => 'function(settings) {
                         if (settings._iRecordsDisplay === 0) {
                             $(settings.nTableWrapper).find(".dataTables_paginate").hide();
@@ -110,7 +124,8 @@ class UserDataTable extends DataTable
                         }
                         feather.replace();
                     }',
-                ]);
+                ])
+                ->processing(true);
     }
 
     /**

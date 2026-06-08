@@ -10,7 +10,7 @@
                     @csrf
                     @method('PUT')
                     <div class="mb-3">
-                        <label for="tipo_combustible" class="form-label">Tipo de Combustible</label>
+                        <label for="tipo_combustible" class="form-label text-dark">Tipo de Combustible</label>
                         <select name="tipo_combustible" id="edit-tipo_combustible" class="form-control">
                             <option value="">Seleccione un tipo de combustible</option>
                             <option value="Nafta">Nafta</option>
@@ -19,20 +19,20 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="litros" class="form-label">Litros</label>
+                        <label for="litros" class="form-label text-dark">Litros</label>
                         <input type="number" name="litros" id="edit-litros" class="form-control" placeholder="Litros" min="0" step="0.01">
                     </div>
                     <div class="mb-3">
-                        <label for="monto" class="form-label">Monto $</label>
+                        <label for="monto" class="form-label text-dark">Monto $</label>
                         <input type="number" name="monto" id="edit-monto" class="form-control" placeholder="Monto" min="0" step="0.01">
                     </div>
                     <div class="mb-3">
-                        <label for="fecha_carga" class="form-label">Fecha de Carga</label>
+                        <label for="fecha_carga" class="form-label text-dark">Fecha de Carga</label>
                         <input type="text" name="fecha_carga" id="edit-fecha_carga" class="datepicker-here form-control" data-language="es">
                     </div>
                     <div id="edit-file-previews"></div>
                     <div class="form-group">
-                        <label for="new_files">Subir nuevos archivos</label>
+                        <label for="new_files" class="text-dark">Subir nuevos archivos</label>
                         <input type="file" name="new_files[]" multiple class="form-control">
                     </div>
                     <div class="d-flex justify-content-end mt-3">

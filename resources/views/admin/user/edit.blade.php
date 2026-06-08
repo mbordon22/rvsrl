@@ -9,21 +9,23 @@
 @section('main_content')
 <div class="container-fluid">
     <div class="page-title">
-      <div class="row">
-        <div class="col-6">
-          <h4>Gestión de Usuarios</h4>
+        <div class="row">
+            <div class="col-12">
+                <h4 class="mb-2">Editar Usuario</h4>
+            </div>
         </div>
-        <div class="col-6">
-          <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">                                       
-                <svg class="stroke-icon">
-                  <use href="{{ asset('assets/svg/icon-sprite.svg#stroke-home') }}"></use>
-                </svg></a></li>
-            <li class="breadcrumb-item">Usuarios</li>
-            <li class="breadcrumb-item active">Editar</li>
-          </ol>
+        <div class="row align-items-center">
+            <div class="col-sm-12">
+                <ol class="breadcrumb mb-0" style="justify-content:flex-start;">
+                    <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">
+                            <svg class="stroke-icon">
+                                <use href="{{ asset('assets/svg/icon-sprite.svg#stroke-home') }}"></use>
+                            </svg></a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('admin.user.index') }}">Usuarios</a></li>
+                    <li class="breadcrumb-item active">Editar</li>
+                </ol>
+            </div>
         </div>
-      </div>
     </div>
   </div>
     <!-- Container-fluid starts-->
@@ -31,11 +33,8 @@
         <div class="row">
             <div class="col-sm-12">
                 <div class="card">
-                    <div class="card-header">
-                        <h4>Editar Usuarios</h4>
-                    </div>
                     <div class="card-body">
-                        <form class="row g-3 custom-input" id="userForm" action="{{ route('admin.user.update', $user->id) }}" method="POST" enctype="multipart/form-data">
+                        <form class="row g-3 custom-input" id="userForm" action="{{ route('admin.user.update', $user->id) }}" method="POST" enctype="multipart/form-data" data-password-required="false">
                             @csrf
                             @method('PUT')
                             @include('admin.user.fields')
@@ -49,7 +48,7 @@
 
 @section('scripts')
     <!-- calendar js-->
-    <script src="{{ asset('assets/js/custom-validation/validation.js') }}"></script>
+    <script src="{{ asset('assets/js/custom-validation/validation.js') }}?v={{ filemtime(public_path('assets/js/custom-validation/validation.js')) }}"></script>
     <script src="{{ asset('assets/js/datepicker/date-picker/datepicker.js') }}"></script>
     <script src="{{ asset('assets/js/datepicker/date-picker/datepicker.es.js') }}"></script>
     <script src="{{ asset('assets/js/datepicker/date-picker/datepicker.custom.js') }}"></script>
@@ -59,39 +58,4 @@
     <script src="{{ asset('assets/js/typeahead/typeahead.bundle.js') }}"></script>
     <script src="{{ asset('assets/js/typeahead-search/handlebars.js') }}"></script>
     <script src="{{ asset('assets/js/typeahead-search/typeahead-custom.js') }}"></script>
-    <script>
-        $(document).ready(function (){
-            $('#country').on('change', function(){
-                var idCountry = this.value;
-                $("#state").html('');
-                $.ajax({
-                    url: "{{ route('admin.user.get-states') }}",
-                    type: "GET",
-                    data: {
-                        country_id: idCountry,
-                        _token: '{{csrf_token()}}'
-                    },
-                    dataType: 'json',
-                    success: function (result) {
-                        $.each(result.states, function (key, value) {
-                            $("#state").append('<option value="' + value
-                                .id + '">' + value.name + '</option>');
-                        });
-                    }
-                });
-            });
-        });
-    </script>
-    <script>
-        $(document).ready(function() {
-            $('#country_code').select2({
-                templateResult: function(option) {
-                    if (option.element && option.element.dataset.image) {
-                        return $('<span><img src="' + option.element.dataset.image + '" width="20" height="15" /> ' + option.text + '</span>');
-                    }
-                    return  option.text;
-                }
-            });
-        });
-    </script>
 @endsection

@@ -31,6 +31,7 @@ class RoleDataTable extends DataTable
             ->editColumn('action', function ($row) {
                 $acciones = ['data' => $row];
                 if (auth()->user()->can('role.edit')) {
+                    $acciones['permissionsRoute'] = 'admin.role.permissions';
                     $acciones['edit'] = 'admin.role.edit';
                 }
                 if (auth()->user()->can('role.destroy')) {
@@ -46,7 +47,14 @@ class RoleDataTable extends DataTable
      */
     public function query(Role $model): QueryBuilder
     {
-        return $model->newQuery()->where('system_reserve',0);
+        $query = $model->newQuery()->where('system_reserve', 0);
+
+        $search = trim((string) request('filter_search'));
+        if ($search !== '') {
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        return $query;
     }
 
     /**
@@ -60,7 +68,7 @@ class RoleDataTable extends DataTable
             ->addColumn(['data' => 'created_at', 'title' => __('Creado'), 'orderable' => false, 'searchable' => false])
             ->addColumn(['data' => 'updated_at', 'title' => __('Última Actualización'), 'orderable' => false, 'searchable' => false])
             ->addColumn(['data' => 'action', 'title' => __('Acción'), 'orderable' => false, 'searchable' => false])
-            ->minifiedAjax()
+            ->minifiedAjax('', null, ['filter_search' => '$("#roleSearch").val()'])
             ->parameters([
                 'language' => [
                     'emptyTable' =>'No se encontraron registros',
@@ -70,6 +78,7 @@ class RoleDataTable extends DataTable
                     'infoFiltered' => '(filtrado de _MAX_ registros totales)',
                     'lengthMenu' => 'Mostrar _MENU_ registros',
                     'search' => 'Buscar:',
+                    'processing' => '',
                     'paginate' => [
                         'next' => 'Siguiente',
                         'previous' => 'Anterior',
@@ -77,6 +86,8 @@ class RoleDataTable extends DataTable
                         'last' => 'Último',
                     ],
                 ],
+                'searching' => false,
+                'lengthChange' => false,
                 'drawCallback' => 'function(settings) {
                     if (settings._iRecordsDisplay === 0) {
                         $(settings.nTableWrapper).find(".dataTables_paginate").hide();
@@ -85,7 +96,8 @@ class RoleDataTable extends DataTable
                     }
                     feather.replace();
                 }',
-            ]);
+            ])
+            ->processing(true);
     }
 
     /**

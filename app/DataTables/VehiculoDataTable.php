@@ -75,7 +75,33 @@ class VehiculoDataTable extends DataTable
      */
     public function query(Vehiculo $model): QueryBuilder
     {
-        return $model->newQuery();
+        $query = $model->newQuery();
+
+        $search = trim((string) request('filter_search'));
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('marca', 'like', "%{$search}%")
+                    ->orWhere('modelo', 'like', "%{$search}%")
+                    ->orWhere('patente', 'like', "%{$search}%");
+            });
+        }
+
+        $identificador = trim((string) request('filter_identificador'));
+        if ($identificador !== '') {
+            $query->where('identificador_vehiculo', 'like', "%{$identificador}%");
+        }
+
+        $tipoVehiculo = request('filter_tipo_vehiculo');
+        if ($tipoVehiculo !== null && $tipoVehiculo !== '') {
+            $query->where('tipo_vehiculo', $tipoVehiculo);
+        }
+
+        $tipoCombustible = request('filter_tipo_combustible');
+        if ($tipoCombustible !== null && $tipoCombustible !== '') {
+            $query->where('tipo_combustible', $tipoCombustible);
+        }
+
+        return $query;
     }
 
     /**
@@ -86,7 +112,12 @@ class VehiculoDataTable extends DataTable
         return $this->builder()
                     ->setTableId('vehiculo-table')
                     ->columns($this->getColumns())
-                    ->minifiedAjax()
+                    ->minifiedAjax('', null, [
+                        'filter_search' => '$("#vehiculoSearch").val()',
+                        'filter_identificador' => '$("#vehiculoIdentificador").val()',
+                        'filter_tipo_vehiculo' => '$("#vehiculoTipoVehiculo").val()',
+                        'filter_tipo_combustible' => '$("#vehiculoTipoCombustible").val()',
+                    ])
                     //->dom('Bfrtip')
                     ->orderBy(1)->parameters([
                         'language' => [
@@ -97,6 +128,7 @@ class VehiculoDataTable extends DataTable
                             'infoFiltered' => '(filtrado de _MAX_ total registros)',
                             'lengthMenu' => 'Mostrar _MENU_ registros',
                             'search' => 'Buscar:',
+                            'processing' => '',
                             'paginate' => [
                                 'next' => 'Siguiente',
                                 'previous' => 'Anterior',
@@ -104,6 +136,8 @@ class VehiculoDataTable extends DataTable
                                 'last' => 'Último'
                             ],
                         ],
+                        'searching' => false,
+                        'lengthChange' => false,
                         'drawCallback' => 'function(settings) {
                             if (settings._iRecordsDisplay === 0) {
                                 $(settings.nTableWrapper).find(".dataTables_paginate").hide();
@@ -113,6 +147,7 @@ class VehiculoDataTable extends DataTable
                             feather.replace();
                         }',
                     ])
+                    ->processing(true)
                     ->selectStyleSingle()
                     ->buttons([
                         Button::make('excel'),

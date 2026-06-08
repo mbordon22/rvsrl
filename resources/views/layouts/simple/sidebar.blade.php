@@ -47,17 +47,17 @@
                 <li class="sidebar-list"><i class="fa fa-thumb-tack"></i><a class="sidebar-link sidebar-title"
                         href="javascript:void(0)">
                         <svg class="stroke-icon">
-                            <use href="{{ asset('assets/svg/icon-sprite.svg#stroke-layout') }}"></use>
+                            <use href="{{ asset('assets/svg/icon-sprite.svg#stroke-user') }}"></use>
                         </svg>
                         <svg class="fill-icon">
-                            <use href="{{ asset('assets/svg/icon-sprite.svg#fill-layout') }}"></use>
+                            <use href="{{ asset('assets/svg/icon-sprite.svg#fill-user') }}"></use>
                         </svg><span class="lan-7-1">Usuarios</span></a>
                     <ul class="sidebar-submenu">
-                        @can('role.index')
-                        <li><a href="{{ route('admin.role.index') }}">Gestión de Roles</a></li>
-                        @endcan
                         @can('user.index')
                         <li><a href="{{ route('admin.user.index') }}">Gestión de Usuarios</a></li>
+                        @endcan
+                        @can('role.index')
+                        <li><a href="{{ route('admin.role.index') }}">Gestión de Roles</a></li>
                         @endcan
                     </ul>
                 </li>

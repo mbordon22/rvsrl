@@ -47,6 +47,8 @@ Route::group(['middleware' => ['auth'], 'as' => 'admin.', 'prefix' => 'admin'], 
     // Roles
     Route::get('roles/nuevo', [RoleController::class, 'create'])->name('role.create');
     Route::get('roles/{role}/editar', [RoleController::class, 'edit'])->name('role.edit');
+    Route::get('roles/{role}/permisos', [RoleController::class, 'permissions'])->name('role.permissions');
+    Route::put('roles/{role}/permisos', [RoleController::class, 'updatePermissions'])->name('role.updatePermissions');
     Route::resource('roles', RoleController::class)->names('role')->except('create', 'edit');
 
     // Vehiculos

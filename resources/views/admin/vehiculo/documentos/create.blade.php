@@ -9,7 +9,7 @@
                 <form action="{{ route('admin.vehiculo.documento.store', $vehiculo->id) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="mb-3">
-                        <label for="tipo_documento" class="form-label">Tipo de Documento</label>
+                        <label for="tipo_documento" class="form-label text-dark">Tipo de Documento</label>
                         <select name="tipo_documento" id="tipo_documento" class="form-control">
                             <option value="">Seleccione un tipo de documento</option>
                             @foreach ($tipos_documentos as $tipo)
@@ -18,7 +18,7 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="fecha_vencimiento" class="form-label">Fecha de Vencimiento</label>
+                        <label for="fecha_vencimiento" class="form-label text-dark">Fecha de Vencimiento</label>
                         <input type="text" name="fecha_vencimiento" id="fecha_vencimiento" class="datepicker-here form-control" data-language="es" value="">
                         @error('fecha_vencimiento')
                             <span class="text-danger">
@@ -27,13 +27,17 @@
                         @enderror
                     </div>
                     <div class="mb-3">
-                        <label for="archivo" class="form-label">Archivo</label>
+                        <label for="archivo" class="form-label text-dark">Archivo</label>
                         <input type="file" name="archivo[]" id="archivo" class="form-control" multiple accept="application/pdf, image/jpeg, image/png, image/jpg">
                         @error('archivo')
                             <span class="text-danger">
                                 <strong>{{ $message }}</strong>
                             </span>
                         @enderror
+                    </div>
+                    <div class="mb-3 form-check form-switch d-flex align-items-center gap-2">
+                        <input type="checkbox" role="switch" name="genera_alerta" id="genera_alerta" value="1" class="form-check-input m-0" style="cursor:pointer; font-size:1.6rem;">
+                        <label for="genera_alerta" class="form-check-label text-dark mb-0">Emitir una alerta cuando llegue la fecha de vencimiento</label>
                     </div>
                     <div class="d-flex justify-content-end mt-3">
                         <button type="submit" id="add-documento-btn" class="btn btn-success">Añadir Documento</button>

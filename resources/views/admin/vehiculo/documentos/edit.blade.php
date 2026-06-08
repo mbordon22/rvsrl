@@ -10,7 +10,7 @@
                     @csrf
                     @method('PUT')
                     <div class="mb-3">
-                        <label for="tipo_documento" class="form-label">Tipo de Documento</label>
+                        <label for="tipo_documento" class="form-label text-dark">Tipo de Documento</label>
                         <select name="tipo_documento" id="edit-tipo_documento" class="form-control">
                             <option value="">Seleccione un tipo de documento</option>
                             @foreach ($tipos_documentos as $tipo)
@@ -19,12 +19,16 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="fecha_vencimiento" class="form-label">Fecha de Vencimiento</label>
+                        <label for="fecha_vencimiento" class="form-label text-dark">Fecha de Vencimiento</label>
                         <input type="text" name="fecha_vencimiento" id="edit-fecha_vencimiento" class="datepicker-here form-control" data-language="es">
+                    </div>
+                    <div class="mb-3 form-check form-switch d-flex align-items-center gap-2">
+                        <input type="checkbox" role="switch" name="genera_alerta" id="edit-genera_alerta" value="1" class="form-check-input m-0" style="cursor:pointer; font-size:1.6rem;">
+                        <label for="edit-genera_alerta" class="form-check-label text-dark mb-0">Emitir una alerta cuando llegue la fecha de vencimiento</label>
                     </div>
                     <div id="edit-file-previews"></div>
                     <div class="form-group">
-                        <label for="new_files">Subir nuevos archivos</label>
+                        <label for="new_files" class="text-dark">Subir nuevos archivos</label>
                         <input type="file" name="new_files[]" multiple class="form-control">
                     </div>
                     <div class="d-flex justify-content-end mt-3">

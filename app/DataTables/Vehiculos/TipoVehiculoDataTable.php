@@ -45,7 +45,14 @@ class TipoVehiculoDataTable extends DataTable
      */
     public function query(TipoVehiculo $model): QueryBuilder
     {
-        return $model->newQuery();
+        $query = $model->newQuery();
+
+        $search = trim((string) request('filter_search'));
+        if ($search !== '') {
+            $query->where('tipo_vehiculo', 'like', "%{$search}%");
+        }
+
+        return $query;
     }
 
     /**
@@ -56,7 +63,9 @@ class TipoVehiculoDataTable extends DataTable
         return $this->builder()
                     ->setTableId('tipovehiculo-table')
                     ->columns($this->getColumns())
-                    ->minifiedAjax()
+                    ->minifiedAjax('', null, [
+                        'filter_search' => '$("#tipoVehiculoSearch").val()',
+                    ])
                     //->dom('Bfrtip')
                     ->orderBy(1)->parameters([
                         'language' => [
@@ -67,6 +76,7 @@ class TipoVehiculoDataTable extends DataTable
                             'infoFiltered' => '(filtrado de _MAX_ total registros)',
                             'lengthMenu' => 'Mostrar _MENU_ registros',
                             'search' => 'Buscar:',
+                            'processing' => '',
                             'paginate' => [
                                 'next' => 'Siguiente',
                                 'previous' => 'Anterior',
@@ -74,6 +84,8 @@ class TipoVehiculoDataTable extends DataTable
                                 'last' => 'Último'
                             ],
                         ],
+                        'searching' => false,
+                        'lengthChange' => false,
                         'drawCallback' => 'function(settings) {
                             if (settings._iRecordsDisplay === 0) {
                                 $(settings.nTableWrapper).find(".dataTables_paginate").hide();
@@ -83,6 +95,7 @@ class TipoVehiculoDataTable extends DataTable
                             feather.replace();
                         }',
                     ])
+                    ->processing(true)
                     ->selectStyleSingle()
                     ->buttons([
                         Button::make('excel'),

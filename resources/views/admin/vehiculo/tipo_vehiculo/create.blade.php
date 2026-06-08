@@ -2,15 +2,16 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="addTipoVehiculoModalLabel">Añadir Nueva Tipo de Vehículo</h5>
+                <h5 class="modal-title" id="addTipoVehiculoModalLabel">Nuevo Tipo de Vehículo</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form action="{{ route('admin.vehiculo.tiposVehiculo.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="mb-3">
-                        <label for="tipo_vehiculo" class="form-label">Tipo de Vehiculo</label>
-                        <input type="text" name="tipo_vehiculo" id="tipo_vehiculo" class="form-control" value="" required>
+                        <label for="tipo_vehiculo" class="form-label text-dark">Tipo de vehículo <span class="text-danger">*</span></label>
+                        <input type="text" name="tipo_vehiculo" id="tipo_vehiculo" class="form-control bg-light"
+                            value="" placeholder="Ingrese el tipo de vehículo" required>
                     </div>
                     <div class="d-flex justify-content-end mt-3">
                         <button type="submit" id="add-tipo-vehiculo-btn" class="btn btn-success">Añadir Registro</button>

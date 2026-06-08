@@ -69,6 +69,30 @@ class RoleRepository extends BaseRepository
         }
     }
 
+    public function updatePermissions($request, $id)
+    {
+        DB::beginTransaction();
+
+        try {
+
+            $role = $this->model->findOrFail($id);
+            if ($role->system_reserve) {
+                return redirect()->route('admin.role.index')->with('error', 'Este rol no se puede editar. Está reservado por el sistema.');
+            }
+
+            $role->syncPermissions($request['permissions'] ?? []);
+
+            DB::commit();
+            return redirect()->route('admin.role.index')->with('success', 'Permisos actualizados correctamente');
+
+        } catch (Exception $e){
+
+            DB::rollback();
+
+            throw $e;
+        }
+    }
+
     public function destroy($id)
     {
         DB::beginTransaction();

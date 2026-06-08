@@ -102,7 +102,8 @@ class VehiculoDocDataTable extends DataTable
                     ->setTableId('vehiculodoc-table')
                     ->columns($this->getColumns())
                     ->minifiedAjax()
-                    ->orderBy(1)->parameters([
+                    ->orderBy(2, 'desc')
+                    ->parameters([
                         'language' => [
                             'emptyTable' =>'No se encontraron registros',
                             'infoEmpty' => '',
@@ -118,6 +119,8 @@ class VehiculoDocDataTable extends DataTable
                                 'last' => 'Último'
                             ],
                         ],
+                        'searching' => false,
+                        'lengthChange' => false,
                         'drawCallback' => 'function(settings) {
                             if (settings._iRecordsDisplay === 0) {
                                 $(settings.nTableWrapper).find(".dataTables_paginate").hide();

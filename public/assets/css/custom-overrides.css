@@ -1,0 +1,26 @@
+/* ============================================================
+   Overrides globales del proyecto
+   (cargado último en layouts/simple/css.blade.php para ganar
+   en la cascada sin tener que recompilar el SCSS del tema)
+   ============================================================ */
+
+/* Fix: el texto del buscador de Select2 se renderizaba en blanco
+   sobre fondo claro y no se podía leer lo que se tipeaba. */
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    color: #051A1A !important;
+    background-color: #fff !important;
+}
+
+/* Texto de las opciones del desplegable y del valor seleccionado. */
+.select2-container--default .select2-results__option {
+    color: #051A1A;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #051A1A;
+}
+
+/* La opción resaltada mantiene texto claro sobre el fondo primario. */
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    color: #fff;
+}

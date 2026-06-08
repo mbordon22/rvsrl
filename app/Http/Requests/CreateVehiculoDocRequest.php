@@ -24,6 +24,7 @@ class CreateVehiculoDocRequest extends FormRequest
     {
         return [
             'tipo_documento' => 'required|string|max:255',
+            'genera_alerta' => 'nullable|boolean',
             'archivo' => 'nullable|array', // Ensure the 'archivo' field is an array and required
             'archivo.*' => 'file|mimes:jpg,jpeg,png,pdf', // Validate each file in the array
             'fecha_vencimiento' => [

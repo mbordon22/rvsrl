@@ -1,5 +1,13 @@
 <div class="action-div">
     @isset($data)
+        @isset($permissionsRoute)
+            @if (isset($data->system_reserve) ? !$data->system_reserve : true)
+                <a href="{{ route($permissionsRoute, $data) }}" class="permissions-icon" title="Permisos">
+                    <i data-feather="shield"></i>
+                </a>
+            @endif
+        @endisset
+
         @isset($edit)
             @if (isset($data->system_reserve) ? !$data->system_reserve : true)
                 <a href="{{ route($edit, $data) }}" class="edit-icon">

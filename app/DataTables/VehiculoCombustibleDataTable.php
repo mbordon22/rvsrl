@@ -98,11 +98,38 @@ class VehiculoCombustibleDataTable extends DataTable
      */
     public function query(VehiculoCombustible $model): QueryBuilder
     {
-        return $model->newQuery()
+        $query = $model->newQuery()
                 ->with(['vehiculo', 'user'])
                 ->leftJoin('users', 'vehiculos_combustible.user_id', '=', 'users.id')
                 ->select('vehiculos_combustible.*')
                 ->where('vehiculo_id', $this->vehiculoId);
+
+        $userId = request('filter_user_id');
+        if ($userId !== null && $userId !== '') {
+            $query->where('vehiculos_combustible.user_id', $userId);
+        }
+
+        $desde = trim((string) request('filter_fecha_desde'));
+        if ($desde !== '') {
+            try {
+                $desdeDb = \Carbon\Carbon::createFromFormat('d/m/Y', $desde)->format('Y-m-d');
+                $query->whereDate('vehiculos_combustible.fecha_carga', '>=', $desdeDb);
+            } catch (\Exception $e) {
+                // formato inválido: se ignora el filtro
+            }
+        }
+
+        $hasta = trim((string) request('filter_fecha_hasta'));
+        if ($hasta !== '') {
+            try {
+                $hastaDb = \Carbon\Carbon::createFromFormat('d/m/Y', $hasta)->format('Y-m-d');
+                $query->whereDate('vehiculos_combustible.fecha_carga', '<=', $hastaDb);
+            } catch (\Exception $e) {
+                // formato inválido: se ignora el filtro
+            }
+        }
+
+        return $query;
     }
 
     /**
@@ -113,7 +140,11 @@ class VehiculoCombustibleDataTable extends DataTable
         return $this->builder()
                     ->setTableId('vehiculocombustible-table')
                     ->columns($this->getColumns())
-                    ->minifiedAjax()
+                    ->minifiedAjax('', null, [
+                        'filter_user_id' => '$("#combUserFilter").val()',
+                        'filter_fecha_desde' => '$("#combFechaDesde").val()',
+                        'filter_fecha_hasta' => '$("#combFechaHasta").val()',
+                    ])
                     ->orderBy(2, 'desc')
                     ->parameters([
                         'language' => [
@@ -124,6 +155,7 @@ class VehiculoCombustibleDataTable extends DataTable
                             'infoFiltered' => '(filtrado de _MAX_ total registros)',
                             'lengthMenu' => 'Mostrar _MENU_ registros',
                             'search' => 'Buscar:',
+                            'processing' => '',
                             'paginate' => [
                                 'next' => 'Siguiente',
                                 'previous' => 'Anterior',
@@ -131,6 +163,8 @@ class VehiculoCombustibleDataTable extends DataTable
                                 'last' => 'Último'
                             ],
                         ],
+                        'searching' => false,
+                        'lengthChange' => false,
                         'drawCallback' => 'function(settings) {
                             if (settings._iRecordsDisplay === 0) {
                                 $(settings.nTableWrapper).find(".dataTables_paginate").hide();
@@ -140,6 +174,7 @@ class VehiculoCombustibleDataTable extends DataTable
                             feather.replace();
                         }',
                     ])
+                    ->processing(true)
                     ->selectStyleSingle()
                     ->buttons([
                         Button::make('excel'),

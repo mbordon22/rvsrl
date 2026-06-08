@@ -56,6 +56,7 @@ $(document).on('click', '.edit-document-btn', function () {
     $.get(url, function (data) {
         $('#edit-tipo_documento').val(data.tipo_documento);
         $('#edit-fecha_vencimiento').val(data.fecha_vencimiento ? moment(data.fecha_vencimiento).format('DD/MM/YYYY') : '');
+        $('#edit-genera_alerta').prop('checked', !!data.genera_alerta);
         $('#edit-document-form').attr('action', `{{ url('admin/vehiculos/documentacion') }}/${id}`);
 
         // Clear existing file previews

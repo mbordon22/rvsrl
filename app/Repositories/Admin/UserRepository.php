@@ -92,7 +92,6 @@ class UserRepository extends BaseRepository
                 'dob' => $request['dob'],
                 'dni' => $request['dni'],
                 'admission_date' => $admissionDate,
-                'password' => Hash::make($request['password']),
                 'status' => $request['status'],
                 'state_id' => $request['state_id'],
                 'about_me' => $request['about_me'],
@@ -100,7 +99,8 @@ class UserRepository extends BaseRepository
                 'location' => $request['location'],
             ]);
 
-            if($request['password']) {
+            // Solo actualizar la contraseña si se ingresó una nueva
+            if (!empty($request['password'])) {
                 $user->update(['password' => Hash::make($request['password'])]);
             }
 

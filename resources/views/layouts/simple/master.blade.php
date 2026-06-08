@@ -50,11 +50,11 @@
 
                         @switch(Route::currentRouteName())
                             @case('admin.checkout')
-                                <div class="page-body checkout">
+                                <div class="page-body bg-light checkout">
                                 @break
 
                             @default
-                                <div class="page-body">
+                                <div class="page-body bg-light">
                         @endswitch
                                 @yield('main_content')
                             </div>

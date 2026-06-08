@@ -24,3 +24,5 @@
 <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/vendors/select2.css') }}">
 <!-- Toastr css -->
 <link rel="stylesheet" type="text/css" href="{{ asset('assets/css/vendors/toastr.min.css')}}">
+<!-- Overrides globales del proyecto (debe ir último) -->
+<link rel="stylesheet" type="text/css" href="{{ asset('assets/css/custom-overrides.css') }}">

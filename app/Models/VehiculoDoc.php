@@ -18,6 +18,7 @@ class VehiculoDoc extends Model implements HasMedia
         'tipo_documento',
         'archivo',
         'fecha_vencimiento',
+        'genera_alerta',
         'fecha_carga',
         'estado',
         'usuario_carga',
@@ -25,8 +26,17 @@ class VehiculoDoc extends Model implements HasMedia
         'usuario_elimina',
     ];
 
+    protected $casts = [
+        'genera_alerta' => 'boolean',
+    ];
+
     public function vehiculo()
     {
         return $this->belongsTo(Vehiculo::class);
+    }
+
+    public function notificaciones()
+    {
+        return $this->morphMany(Notificacion::class, 'notificable');
     }
 }

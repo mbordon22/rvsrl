@@ -12,11 +12,13 @@
 <div class="container-fluid">
     <div class="page-title">
         <div class="row">
-            <div class="col-6">
-                <h3>Documentación de {{ $vehiculo->marca }} {{ $vehiculo->modelo }} - Patente: {{ $vehiculo->patente }}</h3>
+            <div class="col-12">
+                <h4 class="mb-2">Documentación de {{ $vehiculo->marca }} {{ $vehiculo->modelo }} - Patente: {{ $vehiculo->patente }}</h4>
             </div>
-            <div class="col-6">
-                <ol class="breadcrumb">
+        </div>
+        <div class="row align-items-center">
+            <div class="col-sm-8">
+                <ol class="breadcrumb mb-0" style="justify-content:flex-start;">
                     <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">
                             <svg class="stroke-icon">
                                 <use href="{{ asset('assets/svg/icon-sprite.svg#stroke-home') }}"></use>
@@ -25,19 +27,20 @@
                     <li class="breadcrumb-item active">Documentación</li>
                 </ol>
             </div>
+            <div class="col-sm-4 text-end">
+                @can('vehiculo.create')
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDocumentModal">
+                        Añadir Documento
+                    </button>
+                @endcan
+                <a href="{{route('admin.vehiculo.index')}}" class="btn btn-light">
+                    Volver a Vehículos
+                </a>
+            </div>
         </div>
     </div>
 </div>
 <div class="container-fluid">
-    @can('vehiculo.create')
-    <button type="button" class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addDocumentModal">
-        Añadir Documento
-    </button>
-    @endcan
-    <a href="{{route('admin.vehiculo.index')}}" class="btn btn-light mb-3">
-        Volver a Vehículos
-    </a>
-    
     <!-- Modals -->
     @include('admin.vehiculo.documentos.create')
     @include('admin.vehiculo.documentos.edit')

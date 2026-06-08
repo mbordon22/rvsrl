@@ -7,7 +7,6 @@ use App\Models\TipoCombustible;
 use App\Models\TipoVehiculo;
 use Exception;
 use App\Models\Vehiculo;
-use App\Models\VehiculoCombustible;
 use App\Models\VehiculoDoc;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -23,14 +22,14 @@ class VehiculoRepository extends BaseRepository
 
     public function index($vehiculoTable)
     {
-        $cargas_combustible_mes_actual = VehiculoCombustible::whereMonth('fecha_carga', date('m'))
-            ->whereYear('fecha_carga', date('Y'))
-            ->get()->count();
+        $tipos_vehiculo = TipoVehiculo::all();
+        $tipos_combustible = TipoCombustible::all();
 
         return $vehiculoTable->render('admin.vehiculo.index', [
-            'cargas_combustible_mes_actual' => $cargas_combustible_mes_actual
+            'tipos_vehiculo' => $tipos_vehiculo,
+            'tipos_combustible' => $tipos_combustible,
         ]);
-    }  
+    }
 
     public function create($attribute = [])
     {
@@ -169,6 +168,7 @@ class VehiculoRepository extends BaseRepository
                 'vehiculo_id' => $vehiculo->id,
                 'tipo_documento' => $request->tipo_documento,
                 'fecha_vencimiento' => $fecha_vencimiento,
+                'genera_alerta' => $request->boolean('genera_alerta'),
                 'vehiculo' => $vehiculo->id,
                 'patente' => $request->patente,
                 'fecha_carga' => $fecha_carga,
@@ -217,6 +217,7 @@ class VehiculoRepository extends BaseRepository
         $documento->update([
             'tipo_documento' => $request->tipo_documento,
             'fecha_vencimiento' => $fecha_vencimiento,
+            'genera_alerta' => $request->boolean('genera_alerta'),
             'usuario_modifica' => Auth::user()->id,
         ]);
 

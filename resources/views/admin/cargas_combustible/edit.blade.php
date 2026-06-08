@@ -48,10 +48,9 @@
                             @endforeach
                         </select>
                     </div>
-                    <div id="edit-file-previews"></div>
                     <div class="form-group">
-                        <label for="new_files" class="text-dark">Subir nuevos archivos</label>
-                        <input type="file" name="new_files[]" multiple class="form-control">
+                        <label class="text-dark">Archivos de la factura</label>
+                        <div class="dropzone dz-clickable" id="editDropzone"></div>
                     </div>
                     <div class="d-flex justify-content-end mt-3">
                         <input type="hidden" name="id" id="edit-id">

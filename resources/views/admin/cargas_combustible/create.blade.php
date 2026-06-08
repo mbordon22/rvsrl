@@ -48,8 +48,8 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="archivo" class="form-label text-dark">Imagen de la factura</label>
-                        <input type="file" name="archivo[]" id="archivo" class="form-control" multiple accept="application/pdf, image/jpeg, image/png, image/jpg">
+                        <label class="form-label text-dark">Imágenes / PDF de la factura</label>
+                        <div class="dropzone dz-clickable" id="createDropzone"></div>
                     </div>
                     <div class="d-flex justify-content-end mt-3">
                         <button type="submit" id="add-combustible-btn" class="btn btn-success">Añadir Registro</button>

@@ -6,6 +6,62 @@ $.ajaxSetup({
     }
 });
 
+// ===================== Dropzone (modo manual) =====================
+// Los archivos se adjuntan al FormData al enviar el formulario; Dropzone
+// no sube por su cuenta (autoProcessQueue/autoQueue en false).
+Dropzone.autoDiscover = false;
+var createDropzone = null;
+var editDropzone = null;
+var editDropzoneClearing = false; // evita registrar remove_files al limpiar programáticamente
+
+// Limpia el Dropzone de edición sin marcar los archivos existentes para borrar.
+function clearEditDropzone() {
+    if (!editDropzone) { return; }
+    editDropzoneClearing = true;
+    editDropzone.removeAllFiles(true);
+    editDropzoneClearing = false;
+}
+
+function getDropzoneOpciones() {
+    return {
+        url: '{{ route('admin.cargas-combustible.store') }}', // requerido por Dropzone; no se usa
+        method: 'post',
+        autoProcessQueue: false,
+        autoQueue: false,
+        uploadMultiple: true,
+        parallelUploads: 10,
+        maxFiles: 10,
+        maxFilesize: 10, // MB
+        addRemoveLinks: true,
+        acceptedFiles: 'image/jpeg,image/png,image/jpg,application/pdf',
+        dictDefaultMessage: 'Arrastrá los archivos acá o hacé clic para seleccionar',
+        dictRemoveFile: 'Quitar',
+        dictMaxFilesExceeded: 'No podés subir más archivos.',
+        dictInvalidFileType: 'Tipo de archivo no permitido (solo imágenes o PDF).',
+        dictCancelUpload: 'Cancelar',
+        dictFileTooBig: 'El archivo es muy grande (@{{filesize}}MB). Máximo: @{{maxFilesize}}MB.'
+    };
+}
+
+$(function () {
+    if (document.getElementById('createDropzone')) {
+        createDropzone = new Dropzone('#createDropzone', getDropzoneOpciones());
+    }
+    if (document.getElementById('editDropzone')) {
+        editDropzone = new Dropzone('#editDropzone', getDropzoneOpciones());
+
+        // Al quitar un archivo existente, registrarlo para eliminar en el backend.
+        editDropzone.on('removedfile', function (file) {
+            if (editDropzoneClearing) { return; }
+            if (file && file.existing && file.serverId) {
+                $('#edit-combustible-form').append(
+                    '<input type="hidden" name="remove_files[]" value="' + file.serverId + '">'
+                );
+            }
+        });
+    }
+});
+
 // Agregar un nuevo registro
 $(document).on('click', '#add-combustible-btn', function (e) {
     e.preventDefault();
@@ -15,7 +71,14 @@ $(document).on('click', '#add-combustible-btn', function (e) {
     const form = $(this).closest('form');
     const url = form.attr('action');
     const formData = new FormData(form[0]);
-    
+
+    // Adjuntar los archivos cargados en el Dropzone.
+    if (createDropzone) {
+        createDropzone.getAcceptedFiles().forEach(function (file) {
+            formData.append('archivo[]', file);
+        });
+    }
+
     $.ajax({
         type: 'POST',
         url: url,
@@ -25,6 +88,7 @@ $(document).on('click', '#add-combustible-btn', function (e) {
         success: function (response) {
             $('#cargascombustible-table').DataTable().ajax.reload(null, false);
             form[0].reset(); // Reinicia el formulario
+            if (createDropzone) { createDropzone.removeAllFiles(true); }
             swal({
                 title: 'El registro se agregó exitosamente.',
                 icon: 'success',
@@ -64,22 +128,26 @@ $(document).on('click', '.edit-document-btn', function () {
         $('#edit-vehiculo_id, #edit-user_id').trigger('change.select2');
         $('#edit-combustible-form').attr('action', `{{ url('admin/cargas-combustible') }}/${id}`);
 
-        // Clear existing file previews
-        $('#edit-file-previews').empty();
+        // Reiniciar el Dropzone y los archivos marcados para borrar de una edición anterior.
+        clearEditDropzone();
+        $('#edit-combustible-form').find('input[name="remove_files[]"]').remove();
 
-        // Display existing files
-        if (data.media.length > 0) {
-            data.media.forEach(file => {
-                const filePreview = file.mime_type.startsWith('image/')
-                    ? `<div class="file-preview">
-                            <img src="${file.original_url}" alt="${file.name}" style="height: 100px; object-fit: contain;">
-                            <button type="button" class="btn btn-danger btn-sm remove-file-btn" data-id="${file.id}">Eliminar</button>
-                       </div>`
-                    : `<div class="file-preview">
-                            <a href="${file.original_url}" target="_blank">${file.name}</a>
-                            <button type="button" class="btn btn-danger btn-sm remove-file-btn" data-id="${file.id}">Eliminar</button>
-                       </div>`;
-                $('#edit-file-previews').append(filePreview);
+        // Mostrar los archivos existentes como previews dentro del propio Dropzone.
+        if (editDropzone && data.media && data.media.length > 0) {
+            data.media.forEach(function (file) {
+                var mockFile = {
+                    name: file.name,
+                    size: file.size,
+                    existing: true,
+                    serverId: file.id,
+                    accepted: true
+                };
+                editDropzone.emit('addedfile', mockFile);
+                if (file.mime_type && file.mime_type.indexOf('image/') === 0) {
+                    editDropzone.emit('thumbnail', mockFile, file.original_url);
+                }
+                editDropzone.emit('complete', mockFile);
+                editDropzone.files.push(mockFile);
             });
         }
 
@@ -96,7 +164,16 @@ $(document).on('click', '#edit-combustible-btn', function (e) {
     const form = $(this).closest('form');
     const url = form.attr('action');
     const formData = new FormData(form[0]);
-    
+
+    // Adjuntar solo los archivos nuevos del Dropzone (no los existentes mostrados como preview).
+    if (editDropzone) {
+        editDropzone.getAcceptedFiles().forEach(function (file) {
+            if (!file.existing) {
+                formData.append('new_files[]', file);
+            }
+        });
+    }
+
     $.ajax({
         type: 'POST', // Laravel requiere POST para spoofing PUT
         url: url,
@@ -106,6 +183,8 @@ $(document).on('click', '#edit-combustible-btn', function (e) {
         success: function (response) {
             $('#cargascombustible-table').DataTable().ajax.reload(null, false);
             form[0].reset(); // Reinicia el formulario
+            clearEditDropzone();
+            $('#edit-combustible-form').find('input[name="remove_files[]"]').remove();
             swal({
                 title: 'El registro se actualizó exitosamente.',
                 icon: 'success',
@@ -127,14 +206,6 @@ $(document).on('click', '#edit-combustible-btn', function (e) {
             e.target.innerHTML = 'Guardar Cambios'; // Restaurar el texto del botón
         }
     });
-});
-
-// Handle file removal
-$(document).on('click', '.remove-file-btn', function () {
-    const fileId = $(this).data('id');
-    const input = `<input type="hidden" name="remove_files[]" value="${fileId}">`;
-    $('#edit-document-form').append(input);
-    $(this).closest('.file-preview').remove();
 });
 
 //Eliminar un registro

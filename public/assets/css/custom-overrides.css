@@ -24,3 +24,65 @@
 .select2-container--default .select2-results__option--highlighted[aria-selected] {
     color: #fff;
 }
+
+/* Fix Dropzone: el dropzone.css incluido es de una versión vieja que oculta
+   el texto del mensaje (display:none al span) y usa un sprite inexistente,
+   dejando el área vacía. El JS (v5) renderiza el mensaje en un <span>, así
+   que lo volvemos visible y le damos color/posicionamiento normal. */
+.dropzone .dz-default.dz-message {
+    background-image: none !important;
+    position: relative !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    top: auto !important;
+    left: auto !important;
+    opacity: 1 !important;
+}
+
+.dropzone .dz-default.dz-message span,
+.dropzone .dz-message,
+.dropzone .dz-message .dz-button {
+    display: block !important;
+    color: #051A1A !important;
+    background: transparent;
+    border: none;
+}
+
+.dropzone .dz-preview .dz-filename,
+.dropzone .dz-preview .dz-filename span,
+.dropzone .dz-preview .dz-size,
+.dropzone .dz-preview .dz-size span {
+    color: #051A1A;
+}
+
+/* El dropzone.css viejo no limita el tamaño de la miniatura: se mostraba la
+   imagen a tamaño original. Forzamos una preview chica y recortada. */
+.dropzone .dz-preview {
+    display: inline-block;
+    vertical-align: top;
+    min-height: 120px;
+    margin: 12px !important;
+}
+
+.dropzone .dz-preview .dz-image {
+    width: 120px;
+    height: 120px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.dropzone .dz-preview .dz-image img {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+}
+
+/* Flechas del carrusel de facturas: los íconos de Bootstrap son blancos por
+   defecto y no se ven sobre el fondo blanco del modal. Las pasamos a negro. */
+#viewFilesCombustibleModal .carousel-control-prev-icon,
+#viewFilesCombustibleModal .carousel-control-next-icon,
+#viewFilesDocumentModal .carousel-control-prev-icon,
+#viewFilesDocumentModal .carousel-control-next-icon {
+    filter: invert(1) grayscale(100%);
+}

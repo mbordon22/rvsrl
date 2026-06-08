@@ -103,7 +103,7 @@
                 </li>
                 @endcan
                 @canany(['egresos.index', 'ingresos.index', 'gestion_contable.index'])
-                <li class="sidebar-list"><i class="fa fa-thumb-tack"></i><a class="sidebar-link sidebar-title"
+                {{-- <li class="sidebar-list"><i class="fa fa-thumb-tack"></i><a class="sidebar-link sidebar-title"
                     href="javascript:void(0)">
                     <svg class="stroke-icon">
                         <use href="{{ asset('assets/svg/icon-sprite.svg#stroke-job-search') }}"></use>
@@ -117,7 +117,7 @@
                             <ul class="nav-sub-childmenu submenu-content">
                                 <li><a href="{{ route('admin.gestion-contable.egresos.comprobantes.index') }}">Comprobantes</a></li>
                                 <li><a href="{{ route('admin.gestion-contable.egresos.proveedores.index') }}">Proveedores</a></li>
-                                {{-- <li><a href="">Productos de Compra</a></li> --}}
+
                             </ul>
                         </li>
                         @endcan
@@ -126,7 +126,6 @@
                             <ul class="nav-sub-childmenu submenu-content">
                                 <li><a href="{{ route('admin.gestion-contable.ingresos.comprobantes.index') }}">Comprobantes</a></li>
                                 <li><a href="{{ route('admin.gestion-contable.ingresos.clientes.index') }}">Clientes</a></li>
-                                {{-- <li><a href="">Productos de Venta</a></li> --}}
                             </ul>
                         </li>
                         @endcan
@@ -140,7 +139,7 @@
                         <li><a href="{{ route('admin.gestion-contable.medio-pago.index') }}">Medios de Pago</a></li>
                         @endcan
                     </ul>
-                </li>
+                </li> --}}
                 @endcan
                 @canany(['gestion_stock.index', 'listado_materiales.index', 'listado_almacenes.index', 'listado_cuadrillas.index'])
                 <li class="sidebar-list"><i class="fa fa-thumb-tack"></i><a class="sidebar-link sidebar-title"

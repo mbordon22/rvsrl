@@ -35,7 +35,7 @@
     <div class="row">
         <div class="col-sm-6">
             <div class="mb-3">
-                <label for="dni">Número de DNI</label>
+                <label for="dni">Número de DNI <span class="text-danger">*</span></label>
                 <input class="form-control bg-light bg-light bg-light" type="text" inputmode="numeric" id="dni" name="dni"
                     value="{{ isset($user->dni) ? $user->dni : old('dni') }}" placeholder="Ingrese su DNI">
                 @error('dni')
@@ -63,7 +63,7 @@
     <div class="row">
         <div class="col-sm-6">
             <div class="mb-3">
-                <label for="email">Email <span class="text-danger">*</span></label>
+                <label for="email">Email</label>
                 <input class="form-control bg-light bg-light" type="email" id="email" name="email"
                     value="{{ isset($user->email) ? $user->email : old('email') }}"
                     placeholder="Ingrese su email">

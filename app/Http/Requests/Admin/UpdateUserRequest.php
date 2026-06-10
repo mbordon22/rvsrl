@@ -25,7 +25,7 @@ class UpdateUserRequest extends FormRequest
         return [
             'first_name' => ['required', 'string','max:255'],
             'last_name' => ['required', 'string','max:255'],
-            'email' => ['required','email', 'unique:users,email,'.$id.',id,deleted_at,NULL'],
+            'email' => ['nullable','email', 'unique:users,email,'.$id.',id,deleted_at,NULL'],
             'phone' => ['nullable','numeric','digits_between:6,15', 'unique:users,phone,'.$id.',id,deleted_at,NULL'],
             'postal_code' => ['nullable','numeric'],
             'dob' => [
@@ -39,7 +39,7 @@ class UpdateUserRequest extends FormRequest
                     }
                 },
             ],
-            'dni' => ['nullable','numeric'],
+            'dni' => ['required','numeric','unique:users,dni,'.$id.',id,deleted_at,NULL'],
             'admission_date' => ['nullable',
                 'string',
                 function ($attribute, $value, $fail) {

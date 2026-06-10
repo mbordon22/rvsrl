@@ -6,10 +6,10 @@ use App\Models\Cuadrilla;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\DataTables\Inventarios\CuadrillaDataTable;
-use App\DataTables\Utils\SeleccionarUsuariosDataTable;
 use App\Http\Requests\Admin\Inventarios\CreateCuadrillaRequest;
 use App\Http\Requests\Admin\Inventarios\UpdateCuadrillaRequest;
 use App\Models\User;
+use Illuminate\Support\Collection;
 
 class CuadrillaController extends Controller
 {
@@ -25,13 +25,12 @@ class CuadrillaController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create(SeleccionarUsuariosDataTable $dataTable)
-    {   
-        // Initialize the DataTable for selecting users
-        $dataTable->setRole('user'); // Set the role to filter users
-        $dataTable->setSelectedUsers([]); // Initialize selected users as empty
-
-        return $dataTable->render('admin.inventarios.cuadrillas.create');
+    public function create()
+    {
+        return view('admin.inventarios.cuadrillas.create', [
+            'usuarios' => $this->usuariosDisponibles(),
+            'empleadosSeleccionados' => [],
+        ]);
     }
 
     /**
@@ -72,18 +71,45 @@ class CuadrillaController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(SeleccionarUsuariosDataTable $dataTable, string $id)
+    public function edit(string $id)
     {
-        $cuadrilla = Cuadrilla::findOrFail($id);
-        $empleados = $cuadrilla->empleados->pluck('id')->toArray();
+        $cuadrilla = Cuadrilla::with('empleados')->findOrFail($id);
+        $seleccionados = $cuadrilla->empleados;
 
-        $dataTable->setRole('user'); // Set the role to filter users
-        $dataTable->setSelectedUsers($empleados); // Initialize selected users as empty
-        
-        // Return the view to edit the specified Cuadrilla
-        return $dataTable->render('admin.inventarios.cuadrillas.edit', [
+        return view('admin.inventarios.cuadrillas.edit', [
             'cuadrilla' => $cuadrilla,
+            'usuarios' => $this->usuariosDisponibles($seleccionados),
+            'empleadosSeleccionados' => $seleccionados->pluck('id')->values()->toArray(),
         ]);
+    }
+
+    /**
+     * Build the pool of users that can be added to a cuadrilla.
+     * Always includes the already-selected members (even if they no longer
+     * match the active filter) so they can still be displayed/removed.
+     */
+    private function usuariosDisponibles(?Collection $incluir = null): Collection
+    {
+        $usuarios = User::query()->role('user')
+            ->where('status', 1)
+            ->where('system_reserve', 0)
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get();
+
+        if ($incluir && $incluir->isNotEmpty()) {
+            $usuarios = $usuarios->concat($incluir)->unique('id');
+        }
+
+        return $usuarios->map(function (User $u) {
+            return [
+                'id' => $u->id,
+                'nombre' => trim($u->first_name . ' ' . $u->last_name) ?: $u->email,
+                'rol' => optional($u->role)->name,
+                'avatar' => $u->getFirstMedia('image')?->getUrl(),
+                'inicial' => strtoupper(mb_substr($u->first_name ?: $u->email, 0, 1)),
+            ];
+        })->sortBy('nombre')->values();
     }
 
     /**

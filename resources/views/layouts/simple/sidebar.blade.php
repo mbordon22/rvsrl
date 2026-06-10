@@ -149,9 +149,9 @@
                     </svg>
                     <svg class="fill-icon">
                         <use href="{{ asset('assets/svg/icon-sprite.svg#fill-layout') }}"></use>
-                    </svg><span class="lan-7-1">Inventarios y Stock</span></a>
+                    </svg><span class="lan-7-1">Cuadrillas</span></a>
                     <ul class="sidebar-submenu">
-                        @can('gestion_stock.index')
+                        {{-- @can('gestion_stock.index')
                         <li><a href="{{ route('admin.inventarios.stock.index') }}">Stock Materiales</a></li>
                         @endcan
                         @can('listado_materiales.index')
@@ -159,7 +159,7 @@
                         @endcan
                         @can('listado_almacenes.index')
                         <li><a href="{{ route('admin.inventarios.almacenes.index') }}">List. Almacenes</a></li>
-                        @endcan
+                        @endcan --}}
                         @can('listado_cuadrillas.index')
                         <li><a href="{{ route('admin.inventarios.cuadrillas.index') }}">List. Cuadrillas</a></li>
                         @endcan

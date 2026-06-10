@@ -9,11 +9,13 @@
     <div class="container-fluid basic_table">
         <div class="page-title">
             <div class="row">
-                <div class="col-sm-6">
-                    <h4>Listado de Cuadrillas</h4>
+                <div class="col-12">
+                    <h4 class="mb-2">Listado de Cuadrillas</h4>
                 </div>
-                <div class="col-sm-6">
-                    <ol class="breadcrumb">
+            </div>
+            <div class="row align-items-center">
+                <div class="col-sm-8">
+                    <ol class="breadcrumb mb-0" style="justify-content:flex-start;">
                         <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">
                                 <svg class="stroke-icon">
                                     <use href="{{ asset('assets/svg/icon-sprite.svg#stroke-home') }}"></use>
@@ -21,28 +23,16 @@
                         <li class="breadcrumb-item active">Listado de Cuadrillas</li>
                     </ol>
                 </div>
+                @can('listado_cuadrillas.create')
+                    <div class="col-sm-4 text-end">
+                        <a href="{{ route('admin.inventarios.cuadrillas.create') }}" class="btn btn-primary">
+                            Nueva Cuadrilla
+                        </a>
+                    </div>
+                @endcan
             </div>
         </div>
         <div class="row">
-            <div class="w-full d-flex justify-content-between">
-                @can('listado_cuadrillas.create')    
-                <div class="col-xxl-2 col-sm-6 box-col-6">
-                    <div class="card user-role">
-                        <div class="card-body border-b-primary border-2">
-                            <div class="upcoming-box">
-                                <div class="upcoming-icon bg-primary">
-                                    <svg class="stroke-icon">
-                                        <use href="{{ asset('assets/svg/icon-sprite.svg#user-plus') }}"></use>
-                                    </svg>
-                                </div>
-                                <p>Cuadrillas</p>
-                                <a href="{{ route('admin.inventarios.cuadrillas.create') }}" class="btn btn-primary">Nueva Cuadrilla</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                @endcan
-            </div>
             <div class="col-sm-12">
                 <div class="card">
                     <div class="card-block row">

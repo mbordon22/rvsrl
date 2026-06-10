@@ -84,6 +84,8 @@ class CuadrillaDataTable extends DataTable
                                 'last' => 'Último'
                             ],
                         ],
+                        'searching' => false,
+                        'lengthChange' => false,
                         'drawCallback' => 'function(settings) {
                             if (settings._iRecordsDisplay === 0) {
                                 $(settings.nTableWrapper).find(".dataTables_paginate").hide();

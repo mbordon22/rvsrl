@@ -24,7 +24,7 @@ class CreateUserRequest extends FormRequest
         return [
             'first_name' => ['required', 'string','max:255'],
             'last_name' => ['required', 'string','max:255'],
-            'email' => ['required', 'email', 'unique:users,email,NULL,id,deleted_at,NULL'],
+            'email' => ['nullable', 'email', 'unique:users,email,NULL,id,deleted_at,NULL'],
             'confirm_email' => ['same:email'],
             'phone' => ['nullable', 'digits_between:6,15','unique:users,phone,NULL,id,deleted_at,NULL'],
             'postal_code' => ['nullable','numeric'],
@@ -49,7 +49,7 @@ class CreateUserRequest extends FormRequest
                     }
                 },
             ],
-            'dni' => ['nullable','numeric'],
+            'dni' => ['required','numeric','unique:users,dni,NULL,id,deleted_at,NULL'],
         ];
     }
 }

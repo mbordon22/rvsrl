@@ -139,6 +139,7 @@ class RoleAndPermissionSeeder extends Seeder
                     'create' => 'listado_materiales.create',
                     'edit' => 'listado_materiales.edit',
                     'trash' => 'listado_materiales.trash',
+                    'import' => 'listado_materiales.import',
                 ],
             ],
             [
@@ -159,6 +160,40 @@ class RoleAndPermissionSeeder extends Seeder
                     'create' => 'listado_cuadrillas.create',
                     'edit' => 'listado_cuadrillas.edit',
                     'trash' => 'listado_cuadrillas.trash',
+                ],
+            ],
+            [
+                'name' => 'listado_lpu',
+                'nombre_es' => 'LPU / Tipos de Trabajo',
+                'actions' => [
+                    'index'  => 'listado_lpu.index',
+                    'create' => 'listado_lpu.create',
+                    'edit'   => 'listado_lpu.edit',
+                    'trash'  => 'listado_lpu.trash',
+                    'import' => 'listado_lpu.import',
+                ],
+            ],
+            [
+                'name' => 'trabajos_ordenes',
+                'nombre_es' => 'Carga de Trabajos',
+                'actions' => [
+                    'index'   => 'trabajos_ordenes.index',
+                    'create'  => 'trabajos_ordenes.create',
+                    'edit'    => 'trabajos_ordenes.edit',
+                    'trash'   => 'trabajos_ordenes.trash',
+                    'show'    => 'trabajos_ordenes.show',
+                    'approve' => 'trabajos_ordenes.approve',
+                ],
+            ],
+            [
+                'name' => 'trabajos_periodos',
+                'nombre_es' => 'Períodos de Certificación',
+                'actions' => [
+                    'index'  => 'trabajos_periodos.index',
+                    'create' => 'trabajos_periodos.create',
+                    'edit'   => 'trabajos_periodos.edit',
+                    'trash'  => 'trabajos_periodos.trash',
+                    'export' => 'trabajos_periodos.export',
                 ],
             ],
         ];
@@ -191,6 +226,7 @@ class RoleAndPermissionSeeder extends Seeder
             'vehiculo.index', 'vehiculo.create', 'vehiculo.edit', 'vehiculo.destroy', 'vehiculo.restore', 'vehiculo.forceDelete',
             'combustible.index', 'combustible.create', 'combustible.edit', 'combustible.trash',
             'epp.index', 'epp.create', 'epp.edit', 'epp.trash',
+            'trabajos_ordenes.index', 'trabajos_ordenes.create', 'trabajos_ordenes.edit', 'trabajos_ordenes.show',
         ];
         $userRole->syncPermissions(Permission::whereIn('name', $userPermissions)->get());
 

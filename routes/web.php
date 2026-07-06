@@ -20,6 +20,9 @@ use App\Http\Controllers\Admin\GestionContable\ComprobanteIngresoController;
 use App\Http\Controllers\Admin\GestionContable\ParametrosContablesController;
 use App\Http\Controllers\Admin\Inventarios\CuadrillaController;
 use App\Http\Controllers\Admin\Inventarios\StockMaterialController;
+use App\Http\Controllers\Admin\Trabajos\LpuTipoTrabajoController;
+use App\Http\Controllers\Admin\Trabajos\TrabajoController;
+use App\Http\Controllers\Admin\Trabajos\PeriodoCertificacionController;
 
 Auth::routes(['register' => false, 'verify' => false]);
 
@@ -196,6 +199,8 @@ Route::group(['middleware' => ['auth'], 'as' => 'admin.', 'prefix' => 'admin'], 
     Route::prefix('inventarios')->name('inventarios.')->group(function () {
         Route::prefix('materiales')->name('materiales.')->group(function () {
             Route::get('/', [MaterialController::class, 'index'])->name('index');
+            Route::get('/importar', [MaterialController::class, 'showImport'])->name('showImport');
+            Route::post('/importar', [MaterialController::class, 'import'])->name('import');
             Route::get('/nuevo', [MaterialController::class, 'create'])->name('create');
             Route::post('/', [MaterialController::class, 'store'])->name('store');
             Route::get('/{id}/editar', [MaterialController::class, 'edit'])->name('edit');
@@ -242,6 +247,55 @@ Route::group(['middleware' => ['auth'], 'as' => 'admin.', 'prefix' => 'admin'], 
             Route::get('/getMaterialByCuadrilla/{id}/{cuadrillaId}', [StockMaterialController::class, 'getMaterialByCuadrilla'])->name('getMaterialByCuadrilla');
             Route::get('/getMaterialsByAlmacen/{almacenId}', [StockMaterialController::class, 'getMaterialsByAlmacen'])->name('getMaterialsByAlmacen');
             Route::get('/getMaterialsByCuadrilla/{cuadrillaId}', [StockMaterialController::class, 'getMaterialsByCuadrilla'])->name('getMaterialsByCuadrilla');
+        });
+    });
+
+    // Historial de importaciones (LPU + Materiales)
+    Route::get('importaciones', [App\Http\Controllers\Admin\ImportacionController::class, 'index'])->name('importaciones.index');
+
+    // Módulo Trabajos
+    Route::prefix('trabajos')->name('trabajos.')->group(function () {
+        // Carga de trabajos (cuadrilla)
+        Route::prefix('ordenes')->name('ordenes.')->group(function () {
+            Route::get('/', [TrabajoController::class, 'index'])->name('index');
+            Route::get('/nuevo', [TrabajoController::class, 'create'])->name('create');
+            Route::post('/', [TrabajoController::class, 'store'])->name('store');
+            Route::get('/foto/{mediaId}/eliminar', [TrabajoController::class, 'removeFoto'])->name('removeFoto');
+            Route::get('/cuadrilla/{cuadrillaId}/empleados', [TrabajoController::class, 'empleadosPorCuadrilla'])->name('empleadosPorCuadrilla');
+            Route::get('/{id}', [TrabajoController::class, 'show'])->name('show');
+            Route::get('/{id}/editar', [TrabajoController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [TrabajoController::class, 'update'])->name('update');
+            Route::delete('/{id}', [TrabajoController::class, 'destroy'])->name('destroy');
+        });
+
+        // Períodos de certificación
+        Route::prefix('periodos')->name('periodos.')->group(function () {
+            Route::get('/', [PeriodoCertificacionController::class, 'index'])->name('index');
+            Route::get('/nuevo', [PeriodoCertificacionController::class, 'create'])->name('create');
+            Route::post('/', [PeriodoCertificacionController::class, 'store'])->name('store');
+            Route::get('/{id}', [PeriodoCertificacionController::class, 'show'])->name('show');
+            Route::put('/{id}/meta', [PeriodoCertificacionController::class, 'updateMeta'])->name('updateMeta');
+            Route::post('/{id}/asignar', [PeriodoCertificacionController::class, 'asignar'])->name('asignar');
+            Route::delete('/{id}/trabajo/{trabajoId}', [PeriodoCertificacionController::class, 'quitarTrabajo'])->name('quitarTrabajo');
+            Route::post('/{id}/cerrar', [PeriodoCertificacionController::class, 'cerrar'])->name('cerrar');
+            Route::get('/{id}/exportar', [PeriodoCertificacionController::class, 'showExportar'])->name('showExportar');
+            Route::post('/{id}/exportar', [PeriodoCertificacionController::class, 'exportar'])->name('exportar');
+            Route::delete('/{id}', [PeriodoCertificacionController::class, 'destroy'])->name('destroy');
+            Route::get('/{id}/trabajo/{trabajoId}/ajustar', [PeriodoCertificacionController::class, 'ajustarTrabajo'])->name('ajustar');
+            Route::put('/{id}/trabajo/{trabajoId}/ajustar', [PeriodoCertificacionController::class, 'guardarAjuste'])->name('guardarAjuste');
+            Route::post('/{id}/trabajo/{trabajoId}/regenerar', [PeriodoCertificacionController::class, 'regenerarMateriales'])->name('regenerarMateriales');
+        });
+
+        Route::prefix('lpu')->name('lpu.')->group(function () {
+            Route::get('/', [LpuTipoTrabajoController::class, 'index'])->name('index');
+            Route::get('/importar', [LpuTipoTrabajoController::class, 'showImport'])->name('showImport');
+            Route::post('/importar', [LpuTipoTrabajoController::class, 'import'])->name('import');
+            Route::get('/nuevo', [LpuTipoTrabajoController::class, 'create'])->name('create');
+            Route::post('/', [LpuTipoTrabajoController::class, 'store'])->name('store');
+            Route::get('/{id}/editar', [LpuTipoTrabajoController::class, 'edit'])->name('edit');
+            Route::put('/status/{id}', [LpuTipoTrabajoController::class, 'status'])->name('status');
+            Route::put('/{id}', [LpuTipoTrabajoController::class, 'update'])->name('update');
+            Route::delete('/{id}', [LpuTipoTrabajoController::class, 'destroy'])->name('destroy');
         });
     });
 

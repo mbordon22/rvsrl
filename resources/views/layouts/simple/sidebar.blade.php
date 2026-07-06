@@ -83,7 +83,7 @@
                         </ul>
                     </li>             
                 @endcanany
-                @can('epp.index')     
+                {{-- @can('epp.index')     
                 <li class="sidebar-list"><i class="fa fa-thumb-tack"></i><a class="sidebar-link sidebar-title"
                     href="javascript:void(0)">
                     <svg class="stroke-icon">
@@ -101,7 +101,7 @@
                         @endcan
                     </ul>
                 </li>
-                @endcan
+                @endcan --}}
                 @canany(['egresos.index', 'ingresos.index', 'gestion_contable.index'])
                 {{-- <li class="sidebar-list"><i class="fa fa-thumb-tack"></i><a class="sidebar-link sidebar-title"
                     href="javascript:void(0)">
@@ -141,31 +141,34 @@
                     </ul>
                 </li> --}}
                 @endcan
-                @canany(['gestion_stock.index', 'listado_materiales.index', 'listado_almacenes.index', 'listado_cuadrillas.index'])
+                @canany(['trabajos_ordenes.index', 'trabajos_periodos.index', 'listado_lpu.index', 'listado_materiales.index', 'listado_cuadrillas.index'])
                 <li class="sidebar-list"><i class="fa fa-thumb-tack"></i><a class="sidebar-link sidebar-title"
                     href="javascript:void(0)">
                     <svg class="stroke-icon">
-                        <use href="{{ asset('assets/svg/icon-sprite.svg#stroke-job-search') }}"></use>
+                        <use href="{{ asset('assets/svg/icon-sprite.svg#stroke-task') }}"></use>
                     </svg>
                     <svg class="fill-icon">
-                        <use href="{{ asset('assets/svg/icon-sprite.svg#fill-layout') }}"></use>
-                    </svg><span class="lan-7-1">Cuadrillas</span></a>
+                        <use href="{{ asset('assets/svg/icon-sprite.svg#fill-task') }}"></use>
+                    </svg><span class="lan-7-1">Trabajos</span></a>
                     <ul class="sidebar-submenu">
-                        {{-- @can('gestion_stock.index')
-                        <li><a href="{{ route('admin.inventarios.stock.index') }}">Stock Materiales</a></li>
+                        @can('trabajos_ordenes.index')
+                        <li><a href="{{ route('admin.trabajos.ordenes.index') }}">Carga de Trabajos</a></li>
+                        @endcan
+                        @can('trabajos_periodos.index')
+                        <li><a href="{{ route('admin.trabajos.periodos.index') }}">Certificación (Períodos)</a></li>
+                        @endcan
+                        @can('listado_lpu.index')
+                        <li><a href="{{ route('admin.trabajos.lpu.index') }}">LPU</a></li>
                         @endcan
                         @can('listado_materiales.index')
-                        <li><a href="{{ route('admin.inventarios.materiales.index') }}">List. Materiales</a></li>
+                        <li><a href="{{ route('admin.inventarios.materiales.index') }}">Materiales</a></li>
                         @endcan
-                        @can('listado_almacenes.index')
-                        <li><a href="{{ route('admin.inventarios.almacenes.index') }}">List. Almacenes</a></li>
-                        @endcan --}}
                         @can('listado_cuadrillas.index')
-                        <li><a href="{{ route('admin.inventarios.cuadrillas.index') }}">List. Cuadrillas</a></li>
+                        <li><a href="{{ route('admin.inventarios.cuadrillas.index') }}">Cuadrillas</a></li>
                         @endcan
                     </ul>
                 </li>
-                @endcan
+                @endcanany
             </ul>
         </div>
     </nav>

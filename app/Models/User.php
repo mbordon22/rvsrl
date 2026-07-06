@@ -127,4 +127,14 @@ class User extends Authenticatable implements HasMedia
     {
         return $this->hasMany(StockMaterialMovimiento::class);
     }
+
+    public function cuadrillas()
+    {
+        return $this->belongsToMany(Cuadrilla::class, 'cuadrillas_users', 'user_id', 'cuadrilla_id');
+    }
+
+    public function trabajos()
+    {
+        return $this->hasMany(Trabajo::class);
+    }
 }

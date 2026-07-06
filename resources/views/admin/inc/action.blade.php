@@ -8,6 +8,12 @@
             @endif
         @endisset
 
+        @isset($show)
+            <a href="{{ route($show, $data->id) }}" class="show-icon" title="Ver">
+                <i data-feather="eye"></i>
+            </a>
+        @endisset
+
         @isset($edit)
             @if (isset($data->system_reserve) ? !$data->system_reserve : true)
                 <a href="{{ route($edit, $data) }}" class="edit-icon">

@@ -6,9 +6,13 @@ use App\DataTables\Inventarios\MaterialDataTable;
 use App\Enums\UnidadMedidaMaterial;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Inventarios\CreateMaterialRequest;
+use App\Http\Requests\Admin\Inventarios\ImportMaterialRequest;
 use App\Http\Requests\Admin\Inventarios\UpdateMaterialRequest;
+use App\Models\Importacion;
 use App\Models\Material;
 use Illuminate\Http\Request;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class MaterialController extends Controller
 {
@@ -131,5 +135,158 @@ class MaterialController extends Controller
         } catch (\Exception $e) {
             return redirect()->back()->withErrors(['error' => 'Error al eliminar el material: ' . $e->getMessage()]);
         }
+    }
+
+    public function showImport()
+    {
+        return view('admin.inventarios.materiales.import');
+    }
+
+    public function import(ImportMaterialRequest $request)
+    {
+        @set_time_limit(300);
+
+        try {
+            $file = $request->file('archivo');
+            $reader = IOFactory::createReaderForFile($file->path());
+            $reader->setReadDataOnly(true);
+            $spreadsheet = $reader->load($file->path());
+
+            // Buscar la hoja "MATERIALES" (case-insensitive; puede estar oculta)
+            $sheet = null;
+            foreach ($spreadsheet->getAllSheets() as $s) {
+                if (strtoupper(trim($s->getTitle())) === 'MATERIALES') {
+                    $sheet = $s;
+                    break;
+                }
+            }
+
+            if (!$sheet) {
+                return redirect()->back()->withErrors(['error' => 'No se encontró la hoja "MATERIALES" en el archivo. Verificá que sea el Excel correcto de Telecom.']);
+            }
+
+            // Detectar la fila de encabezados: aquella donde alguna celda dice "ID NUEVO"
+            $highestRow      = $sheet->getHighestRow();
+            $highestColIndex = Coordinate::columnIndexFromString($sheet->getHighestColumn());
+
+            $headerRow = null;
+            for ($row = 1; $row <= min($highestRow, 20); $row++) {
+                for ($col = 1; $col <= min($highestColIndex, 20); $col++) {
+                    $value = $sheet->getCell([$col, $row])->getValue();
+                    if (is_string($value) && strtoupper(trim($value)) === 'ID NUEVO') {
+                        $headerRow = $row;
+                        break 2;
+                    }
+                }
+            }
+
+            if (!$headerRow) {
+                return redirect()->back()->withErrors(['error' => 'No se encontró la columna "ID NUEVO" en la hoja MATERIALES.']);
+            }
+
+            // Mapear columnas por nombre de encabezado
+            $cols = ['codigo' => null, 'breve' => null, 'descripcion' => null, 'unidad' => null];
+            for ($col = 1; $col <= $highestColIndex; $col++) {
+                $header = strtoupper(trim((string) $sheet->getCell([$col, $headerRow])->getValue()));
+                if ($header === '') continue;
+
+                if ($header === 'ID NUEVO') {
+                    $cols['codigo'] = $col;
+                } elseif ($header === 'TEXTO BREVE') {
+                    $cols['breve'] = $col;
+                } elseif (str_contains($header, 'DESCRIPCI')) {
+                    $cols['descripcion'] = $col;
+                } elseif ($header === 'UN' || $header === 'UM' || $header === 'UNIDAD') {
+                    $cols['unidad'] = $col;
+                }
+            }
+
+            if (!$cols['codigo']) {
+                return redirect()->back()->withErrors(['error' => 'No se pudo ubicar la columna "ID NUEVO" en los encabezados.']);
+            }
+
+            $countBefore = Material::count();
+            $now         = now();
+            $userId      = auth()->id();
+            $procesados  = 0;
+            $emptyStreak = 0;
+            $buffer      = [];
+
+            for ($row = $headerRow + 1; $row <= $highestRow; $row++) {
+                $codigoValue = $sheet->getCell([$cols['codigo'], $row])->getValue();
+
+                if ($codigoValue === null || trim((string) $codigoValue) === '') {
+                    $emptyStreak++;
+                    if ($emptyStreak >= 20) break;
+                    continue;
+                }
+                $emptyStreak = 0;
+
+                $codigo = trim((string) $codigoValue);
+                $breve  = $cols['breve'] ? trim((string) $sheet->getCell([$cols['breve'], $row])->getValue()) : '';
+                $larga  = $cols['descripcion'] ? trim((string) $sheet->getCell([$cols['descripcion'], $row])->getValue()) : '';
+                $unidad = $cols['unidad'] ? trim((string) $sheet->getCell([$cols['unidad'], $row])->getValue()) : '';
+
+                $buffer[$codigo] = [   // clave por código: descarta duplicados dentro del archivo (gana el último)
+                    'codigo'            => $codigo,
+                    'descripcion'       => $breve !== '' ? $breve : ('Material ' . $codigo),
+                    'descripcion_larga' => $larga !== '' ? $larga : null,
+                    'unidad_medida'     => $this->mapUnidad($unidad),
+                    'estado'            => true,
+                    'insert_user_id'    => $userId,
+                    'update_user_id'    => $userId,
+                    'created_at'        => $now,
+                    'updated_at'        => $now,
+                ];
+                $procesados++;
+            }
+
+            // Upsert masivo en lotes (rápido en SQLite dentro de una transacción)
+            foreach (array_chunk($buffer, 1000, true) as $chunk) {
+                Material::upsert(
+                    array_values($chunk),
+                    ['codigo'],
+                    ['descripcion', 'descripcion_larga', 'unidad_medida', 'update_user_id', 'updated_at']
+                );
+            }
+
+            $countAfter    = Material::count();
+            $nuevos        = max(0, $countAfter - $countBefore);
+            $actualizados  = max(0, count($buffer) - $nuevos);
+
+            Importacion::create([
+                'tipo'                   => 'materiales',
+                'archivo'                => $file->getClientOriginalName(),
+                'vigencia'               => null,
+                'registros_procesados'   => count($buffer),
+                'registros_nuevos'       => $nuevos,
+                'registros_actualizados' => $actualizados,
+                'observaciones'          => "Duplicados en archivo omitidos: " . ($procesados - count($buffer)),
+                'user_id'                => $userId,
+            ]);
+
+            return redirect()->route('admin.inventarios.materiales.index')
+                ->with('success', "Importación completada: " . count($buffer) . " materiales ($nuevos nuevos, $actualizados actualizados).");
+
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors(['error' => 'Error al importar: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Mapea el código de unidad de Telecom al enum UnidadMedidaMaterial.
+     */
+    private function mapUnidad(string $u): string
+    {
+        return match (strtoupper(trim($u))) {
+            'UN', 'U'  => UnidadMedidaMaterial::UNIDAD->name,
+            'M', 'MT'  => UnidadMedidaMaterial::METRO->name,
+            'KG'       => UnidadMedidaMaterial::KILOGRAMO->name,
+            'LT', 'L'  => UnidadMedidaMaterial::LITRO->name,
+            'KIT'      => UnidadMedidaMaterial::KIT->name,
+            'ROL'      => UnidadMedidaMaterial::ROLLO->name,
+            'BO'       => UnidadMedidaMaterial::BOBINA->name,
+            default    => UnidadMedidaMaterial::UNIDAD->name,
+        };
     }
 }

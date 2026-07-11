@@ -272,20 +272,20 @@ Route::group(['middleware' => ['auth'], 'as' => 'admin.', 'prefix' => 'admin'], 
 
         // Períodos de certificación
         Route::prefix('periodos')->name('periodos.')->group(function () {
-            Route::get('/', [PeriodoCertificacionController::class, 'index'])->name('index');
-            Route::get('/nuevo', [PeriodoCertificacionController::class, 'create'])->name('create');
-            Route::post('/', [PeriodoCertificacionController::class, 'store'])->name('store');
-            Route::get('/{id}', [PeriodoCertificacionController::class, 'show'])->name('show');
-            Route::put('/{id}/meta', [PeriodoCertificacionController::class, 'updateMeta'])->name('updateMeta');
-            Route::post('/{id}/asignar', [PeriodoCertificacionController::class, 'asignar'])->name('asignar');
-            Route::delete('/{id}/trabajo/{trabajoId}', [PeriodoCertificacionController::class, 'quitarTrabajo'])->name('quitarTrabajo');
-            Route::post('/{id}/cerrar', [PeriodoCertificacionController::class, 'cerrar'])->name('cerrar');
-            Route::get('/{id}/exportar', [PeriodoCertificacionController::class, 'showExportar'])->name('showExportar');
-            Route::post('/{id}/exportar', [PeriodoCertificacionController::class, 'exportar'])->name('exportar');
-            Route::delete('/{id}', [PeriodoCertificacionController::class, 'destroy'])->name('destroy');
-            Route::get('/{id}/trabajo/{trabajoId}/ajustar', [PeriodoCertificacionController::class, 'ajustarTrabajo'])->name('ajustar');
-            Route::put('/{id}/trabajo/{trabajoId}/ajustar', [PeriodoCertificacionController::class, 'guardarAjuste'])->name('guardarAjuste');
-            Route::post('/{id}/trabajo/{trabajoId}/regenerar', [PeriodoCertificacionController::class, 'regenerarMateriales'])->name('regenerarMateriales');
+            Route::get('/', [PeriodoCertificacionController::class, 'index'])->middleware('can:trabajos_periodos.index')->name('index');
+            Route::get('/nuevo', [PeriodoCertificacionController::class, 'create'])->middleware('can:trabajos_periodos.create')->name('create');
+            Route::post('/', [PeriodoCertificacionController::class, 'store'])->middleware('can:trabajos_periodos.create')->name('store');
+            Route::get('/{id}', [PeriodoCertificacionController::class, 'show'])->middleware('can:trabajos_periodos.index')->name('show');
+            Route::put('/{id}/meta', [PeriodoCertificacionController::class, 'updateMeta'])->middleware('can:trabajos_periodos.edit')->name('updateMeta');
+            Route::post('/{id}/agregar', [PeriodoCertificacionController::class, 'agregarSeleccionados'])->middleware('can:trabajos_periodos.edit')->name('agregar');
+            Route::delete('/{id}/trabajo/{trabajoId}', [PeriodoCertificacionController::class, 'quitarTrabajo'])->middleware('can:trabajos_periodos.edit')->name('quitarTrabajo');
+            Route::post('/{id}/cerrar', [PeriodoCertificacionController::class, 'cerrar'])->middleware('can:trabajos_periodos.edit')->name('cerrar');
+            Route::get('/{id}/exportar', [PeriodoCertificacionController::class, 'showExportar'])->middleware('can:trabajos_periodos.export')->name('showExportar');
+            Route::post('/{id}/exportar', [PeriodoCertificacionController::class, 'exportar'])->middleware('can:trabajos_periodos.export')->name('exportar');
+            Route::delete('/{id}', [PeriodoCertificacionController::class, 'destroy'])->middleware('can:trabajos_periodos.trash')->name('destroy');
+            Route::get('/{id}/trabajo/{trabajoId}/ajustar', [PeriodoCertificacionController::class, 'ajustarTrabajo'])->middleware('can:trabajos_periodos.edit')->name('ajustar');
+            Route::put('/{id}/trabajo/{trabajoId}/ajustar', [PeriodoCertificacionController::class, 'guardarAjuste'])->middleware('can:trabajos_periodos.edit')->name('guardarAjuste');
+            Route::post('/{id}/trabajo/{trabajoId}/regenerar', [PeriodoCertificacionController::class, 'regenerarMateriales'])->middleware('can:trabajos_periodos.edit')->name('regenerarMateriales');
         });
 
         Route::prefix('lpu')->name('lpu.')->group(function () {

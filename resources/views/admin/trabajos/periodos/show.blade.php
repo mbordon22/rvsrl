@@ -37,12 +37,6 @@
                 <span class="badge bg-dark ms-2">{{ $periodo->categoria->label() }}</span>
             </div>
             <div class="d-flex gap-2">
-                <form action="{{ route('admin.trabajos.periodos.asignar', $periodo->id) }}" method="POST">
-                    @csrf
-                    <button class="btn btn-outline-primary btn-sm" type="submit" title="Buscar y asignar trabajos nuevos del rango">
-                        <i data-feather="refresh-cw"></i> Asignar trabajos
-                    </button>
-                </form>
                 <form action="{{ route('admin.trabajos.periodos.cerrar', $periodo->id) }}" method="POST">
                     @csrf
                     <button class="btn btn-outline-secondary btn-sm" type="submit">
@@ -146,6 +140,50 @@
         </div>
     </div>
 
+    {{-- Trabajos disponibles para agregar (solo si el período está abierto) --}}
+    @if($periodo->estado === 'abierto')
+    <div class="card" id="candidatos-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Trabajos disponibles para agregar ({{ $candidatos->count() }})</h5>
+            <small class="text-muted">Aprobados · {{ $periodo->categoria->label() }} · {{ $periodo->fecha_desde->format('d/m/Y') }}–{{ $periodo->fecha_hasta->format('d/m/Y') }}</small>
+        </div>
+        <div class="card-body p-0">
+            @if($candidatos->isEmpty())
+                <p class="text-muted text-center p-3 mb-0">No hay trabajos aprobados disponibles para esta categoría y rango de fechas.</p>
+            @else
+                <form action="{{ route('admin.trabajos.periodos.agregar', $periodo->id) }}" method="POST" id="form-candidatos">
+                    @csrf
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:40px" class="text-center"><input type="checkbox" class="form-check-input m-0" id="cand-all" title="Seleccionar todos"></th>
+                                    <th>Fecha</th><th>Cuadrilla</th><th>Domicilio</th><th>Poste</th><th>Categoría</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($candidatos as $c)
+                                    <tr>
+                                        <td class="text-center"><input type="checkbox" class="form-check-input m-0 cand-check" name="trabajos[]" value="{{ $c->id }}"></td>
+                                        <td>{{ $c->fecha->format('d/m/Y') }}</td>
+                                        <td>{{ $c->cuadrilla?->nombre ?? '—' }}</td>
+                                        <td class="small">{{ \Illuminate\Support\Str::limit($c->domicilio, 25) ?: '—' }}</td>
+                                        <td>{{ $c->tipo_poste?->label() ?? '—' }}</td>
+                                        <td>{{ $c->categoria?->label() ?? '—' }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="p-3 text-end border-top">
+                        <button type="submit" class="btn btn-success" id="btn-agregar" disabled>Agregar seleccionados</button>
+                    </div>
+                </form>
+            @endif
+        </div>
+    </div>
+    @endif
+
     {{-- Trabajos asignados --}}
     <div class="card">
         <div class="card-header"><h5 class="mb-0">Trabajos del período ({{ $trabajos->count() }})</h5></div>
@@ -171,15 +209,19 @@
                                 </td>
                                 <td class="text-center">{{ $t->materiales->count() }}</td>
                                 <td class="text-center text-nowrap">
-                                    <a href="{{ route('admin.trabajos.periodos.ajustar', [$periodo->id, $t->id]) }}" class="btn btn-sm btn-outline-primary py-0" title="Ajustar LPU y materiales"><i data-feather="edit-2" style="width:14px;"></i></a>
-                                    <form action="{{ route('admin.trabajos.periodos.quitarTrabajo', [$periodo->id, $t->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Quitar este trabajo del período?')">
-                                        @csrf @method('DELETE')
-                                        <button class="btn btn-sm btn-outline-danger py-0" title="Quitar del período"><i data-feather="x" style="width:14px;"></i></button>
-                                    </form>
+                                    @if($periodo->estado === 'abierto')
+                                        <a href="{{ route('admin.trabajos.periodos.ajustar', [$periodo->id, $t->id]) }}" class="btn btn-sm btn-outline-primary py-0" title="Ajustar LPU y materiales"><i data-feather="edit-2" style="width:14px;"></i></a>
+                                        <form action="{{ route('admin.trabajos.periodos.quitarTrabajo', [$periodo->id, $t->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Quitar este trabajo del período?')">
+                                            @csrf @method('DELETE')
+                                            <button class="btn btn-sm btn-outline-danger py-0" title="Quitar del período"><i data-feather="x" style="width:14px;"></i></button>
+                                        </form>
+                                    @else
+                                        <span class="text-muted small"><i data-feather="lock" style="width:14px;"></i></span>
+                                    @endif
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="7" class="text-center text-muted p-3">No hay trabajos asignados. Usá "Asignar trabajos" o cargá trabajos en el rango de fechas.</td></tr>
+                            <tr><td colspan="7" class="text-center text-muted p-3">Todavía no agregaste trabajos. Elegilos en "Trabajos disponibles para agregar".</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -190,5 +232,28 @@
 @endsection
 
 @section('scripts')
-<script> feather.replace(); </script>
+<script>
+    feather.replace();
+    (function () {
+        var all = document.getElementById('cand-all');
+        var checks = Array.prototype.slice.call(document.querySelectorAll('.cand-check'));
+        var btn = document.getElementById('btn-agregar');
+        if (!checks.length) return;
+
+        function refresh() {
+            var marcados = checks.filter(function (c) { return c.checked; }).length;
+            if (btn) btn.disabled = marcados === 0;
+            if (all) {
+                all.checked = marcados === checks.length;
+                all.indeterminate = marcados > 0 && marcados < checks.length;
+            }
+        }
+        if (all) all.addEventListener('change', function () {
+            checks.forEach(function (c) { c.checked = all.checked; });
+            refresh();
+        });
+        checks.forEach(function (c) { c.addEventListener('change', refresh); });
+        refresh();
+    })();
+</script>
 @endsection

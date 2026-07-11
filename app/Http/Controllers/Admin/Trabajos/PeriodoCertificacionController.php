@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Trabajos;
 
 use App\DataTables\Trabajos\PeriodoCertificacionDataTable;
 use App\Enums\CategoriaCertificacion;
+use App\Enums\EstadoTrabajo;
 use App\Http\Controllers\Controller;
 use App\Models\Cuadrilla;
 use App\Models\LpuTipoTrabajo;
@@ -13,6 +14,7 @@ use App\Models\Trabajo;
 use App\Models\TrabajoMaterial;
 use App\Services\CertificacionExcelService;
 use App\Services\GeneradorMaterialesService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -49,12 +51,10 @@ class PeriodoCertificacionController extends Controller
                 'insert_user_id' => auth()->id(),
             ]));
 
-            $asignados = $this->asignarTrabajos($periodo);
-
             DB::commit();
 
             return redirect()->route('admin.trabajos.periodos.show', $periodo->id)
-                ->with('success', "Período creado. Se asignaron $asignados trabajos.");
+                ->with('success', 'Período creado. Agregá los trabajos desde el panel de disponibles.');
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -102,8 +102,13 @@ class PeriodoCertificacionController extends Controller
         $totalCertificado = $lpuResumen->sum('subtotal');
         $sinLpu           = $trabajos->whereNull('lpu_id')->count();
 
+        // Trabajos candidatos para agregar (solo si el período está abierto)
+        $candidatos = $periodo->estado === 'abierto'
+            ? $this->candidatosQuery($periodo)->with('cuadrilla')->orderBy('fecha')->get()
+            : collect();
+
         return view('admin.trabajos.periodos.show', compact(
-            'periodo', 'trabajos', 'lpuResumen', 'materialesResumen', 'totalCertificado', 'sinLpu'
+            'periodo', 'trabajos', 'lpuResumen', 'materialesResumen', 'totalCertificado', 'sinLpu', 'candidatos'
         ));
     }
 
@@ -123,36 +128,57 @@ class PeriodoCertificacionController extends Controller
             'categoria'         => 'required|in:mantenimiento,obras',
         ]);
 
+        // No permitir cambiar la categoría si ya hay trabajos asignados (evita mezclar MANT/OBRA)
+        if ($data['categoria'] !== $periodo->categoria->value && $periodo->trabajos()->exists()) {
+            return redirect()->back()->withInput()
+                ->withErrors(['error' => 'No podés cambiar la categoría con trabajos ya asignados. Quitalos primero.']);
+        }
+
         $periodo->update($data);
 
         return redirect()->back()->with('success', 'Datos de la certificación actualizados.');
     }
 
     /**
-     * Asigna al período los trabajos aprobables (sin período) dentro del rango
-     * de fechas y de la cuadrilla (si se especificó). Devuelve la cantidad asignada.
+     * Query de trabajos candidatos a entrar en el período: sin período asignado,
+     * aprobados, dentro del rango de fechas, de la MISMA categoría que el período,
+     * y de la cuadrilla del período (si se especificó una).
      */
-    public function asignarTrabajos(PeriodoCertificacion $periodo): int
+    private function candidatosQuery(PeriodoCertificacion $periodo): Builder
     {
         $query = Trabajo::whereNull('periodo_id')
-            ->where('estado', \App\Enums\EstadoTrabajo::APROBADO->value)
+            ->where('estado', EstadoTrabajo::APROBADO->value)
+            ->where('categoria', $periodo->categoria->value)
             ->whereBetween('fecha', [$periodo->fecha_desde->toDateString(), $periodo->fecha_hasta->toDateString()]);
 
         if ($periodo->cuadrilla_id) {
             $query->where('cuadrilla_id', $periodo->cuadrilla_id);
         }
 
-        return $query->update(['periodo_id' => $periodo->id]);
+        return $query;
     }
 
-    public function asignar(string $id)
+    /**
+     * Agrega al período los trabajos seleccionados. Re-valida server-side contra
+     * candidatosQuery: solo se asignan ids que sigan siendo candidatos válidos.
+     */
+    public function agregarSeleccionados(Request $request, string $id)
     {
         $periodo = PeriodoCertificacion::findOrFail($id);
         abort_if($periodo->estado !== 'abierto', 403, 'El período no está abierto.');
 
-        $n = $this->asignarTrabajos($periodo);
+        $data = $request->validate([
+            'trabajos'   => 'required|array',
+            'trabajos.*' => 'integer',
+        ], [
+            'trabajos.required' => 'Seleccioná al menos un trabajo para agregar.',
+        ]);
 
-        return redirect()->back()->with('success', "Se asignaron $n trabajos nuevos al período.");
+        $n = $this->candidatosQuery($periodo)
+            ->whereIn('id', $data['trabajos'])
+            ->update(['periodo_id' => $periodo->id]);
+
+        return redirect()->back()->with('success', "Se agregaron $n trabajo(s) al período.");
     }
 
     public function quitarTrabajo(string $id, string $trabajoId)
@@ -167,8 +193,19 @@ class PeriodoCertificacionController extends Controller
     public function cerrar(string $id)
     {
         $periodo = PeriodoCertificacion::findOrFail($id);
-        $periodo->estado = $periodo->estado === 'abierto' ? 'cerrado' : 'abierto';
-        $periodo->save();
+
+        DB::transaction(function () use ($periodo) {
+            if ($periodo->estado === 'abierto') {
+                // Cerrar: los trabajos quedan certificados (y bloqueados)
+                $periodo->estado = 'cerrado';
+                $periodo->trabajos()->update(['estado' => EstadoTrabajo::CERTIFICADO->value]);
+            } else {
+                // Reabrir: los trabajos vuelven a aprobado para poder gestionarlos
+                $periodo->estado = 'abierto';
+                $periodo->trabajos()->update(['estado' => EstadoTrabajo::APROBADO->value]);
+            }
+            $periodo->save();
+        });
 
         return redirect()->back()->with('success', 'Estado del período actualizado.');
     }
@@ -178,6 +215,9 @@ class PeriodoCertificacionController extends Controller
         $periodo = PeriodoCertificacion::findOrFail($id);
 
         DB::transaction(function () use ($periodo) {
+            // Si estaban certificados, volverlos a aprobado antes de liberarlos
+            $periodo->trabajos()->where('estado', EstadoTrabajo::CERTIFICADO->value)
+                ->update(['estado' => EstadoTrabajo::APROBADO->value]);
             $periodo->trabajos()->update(['periodo_id' => null]); // liberar trabajos
             $periodo->delete();
         });

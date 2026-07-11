@@ -34,7 +34,14 @@ class TrabajoController extends Controller
 
     public function index(TrabajoDataTable $dataTable)
     {
-        return $dataTable->render('admin.trabajos.ordenes.index');
+        $esAdmin = auth()->user()->hasRole('admin');
+
+        return $dataTable->render('admin.trabajos.ordenes.index', [
+            'cuadrillasFiltro' => $esAdmin
+                ? Cuadrilla::where('estado', true)->orderBy('nombre')->get()
+                : auth()->user()->cuadrillas()->get(),
+            'estadosFiltro'    => EstadoTrabajo::options(),
+        ]);
     }
 
     public function create()
@@ -168,6 +175,13 @@ class TrabajoController extends Controller
         try {
             $trabajo = Trabajo::findOrFail($id);
 
+            // La categoría (tipo de trabajo) es obligatoria para aprobar: define
+            // en qué certificación (mantenimiento/obra) va a poder entrar.
+            if (!$trabajo->categoria) {
+                return redirect()->back()->withInput()
+                    ->withErrors(['error' => 'Cargá la categoría (tipo de trabajo: mantenimiento u obra) en Infraestructura antes de aprobar.']);
+            }
+
             $trabajo->update([
                 'ot'             => $request->ot,
                 'estado'         => \App\Enums\EstadoTrabajo::APROBADO->value,
@@ -237,7 +251,8 @@ class TrabajoController extends Controller
      */
     private function puedeEditar(Trabajo $trabajo): bool
     {
-        if ($trabajo->estado === EstadoTrabajo::APROBADO) {
+        // Aprobado o certificado: bloqueado salvo para quien tenga permiso de aprobación
+        if (in_array($trabajo->estado, [EstadoTrabajo::APROBADO, EstadoTrabajo::CERTIFICADO], true)) {
             return auth()->user()->can('trabajos_ordenes.approve');
         }
         return true;

@@ -41,8 +41,8 @@
                         <span class="badge {{ $trabajo->estado?->badge() }}">{{ $trabajo->estado?->label() }}</span>
                     </div>
                     <div class="card-body">
-                        @if($trabajo->estado === \App\Enums\EstadoTrabajo::APROBADO)
-                            <p class="mb-1"><strong>Trabajo aprobado.</strong></p>
+                        @if(in_array($trabajo->estado, [\App\Enums\EstadoTrabajo::APROBADO, \App\Enums\EstadoTrabajo::CERTIFICADO], true))
+                            <p class="mb-1"><strong>Trabajo {{ strtolower($trabajo->estado->label()) }}.</strong></p>
                             <p class="mb-0 text-muted">
                                 OT: <strong>{{ $trabajo->ot ?: '—' }}</strong>
                                 @if($trabajo->aprobadoPor)
@@ -52,6 +52,12 @@
                                     · {{ $trabajo->aprobado_at->format('d/m/Y H:i') }}
                                 @endif
                             </p>
+                        @elseif(!$trabajo->categoria)
+                            <div class="alert alert-warning mb-0">
+                                <i class="fa fa-exclamation-triangle me-1"></i>
+                                Falta cargar la <strong>categoría (tipo de trabajo)</strong> en la sección Infraestructura.
+                                Cargala y guardá arriba para poder aprobar el trabajo.
+                            </div>
                         @else
                             <p class="text-muted">Revisá el trabajo (podés corregir lo que haga falta y guardar arriba), cargá la OT y aprobalo.</p>
                             <form action="{{ route('admin.trabajos.ordenes.aprobar', $trabajo->id) }}" method="POST" class="row g-2 align-items-end"

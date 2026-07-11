@@ -30,8 +30,9 @@
                 <div class="card-header"><h5 class="mb-0">Datos del período</h5></div>
                 <div class="card-body">
                     <div class="alert alert-info py-2">
-                        Al crear el período se le asignan automáticamente los trabajos dentro del rango de fechas
-                        (y de la cuadrilla, si elegís una) que todavía no estén en otro período.
+                        Al crear el período, en su pantalla vas a poder elegir qué trabajos entran en la certificación.
+                        Solo se ofrecen los trabajos <strong>aprobados</strong>, dentro del rango de fechas, de la
+                        <strong>misma categoría</strong> (Mantenimiento/Obra) y de la cuadrilla si elegís una.
                     </div>
                     <form action="{{ route('admin.trabajos.periodos.store') }}" method="POST" class="row g-3">
                         @csrf

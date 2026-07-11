@@ -4,20 +4,16 @@ namespace App\Enums;
 
 enum EstadoTrabajo: string
 {
-    case BORRADOR  = 'borrador';       // legado (registros viejos); los nuevos se crean como PENDIENTE
     case PENDIENTE = 'pendiente';
-    case ENVIADO   = 'enviado';
     case APROBADO  = 'aprobado';
-    case RECHAZADO = 'rechazado';
+    case CERTIFICADO = 'certificado';
 
     public function label(): string
     {
         return match ($this) {
-            self::BORRADOR  => 'Borrador',
+            self::CERTIFICADO  => 'Certificado',
             self::PENDIENTE => 'Pendiente de revisión',
-            self::ENVIADO   => 'Enviado',
-            self::APROBADO  => 'Aprobado',
-            self::RECHAZADO => 'Rechazado',
+            self::APROBADO  => 'Aprobado'
         };
     }
 
@@ -25,11 +21,19 @@ enum EstadoTrabajo: string
     public function badge(): string
     {
         return match ($this) {
-            self::BORRADOR  => 'bg-secondary',
+            self::CERTIFICADO  => 'bg-secondary',
             self::PENDIENTE => 'bg-warning',
-            self::ENVIADO   => 'bg-info',
             self::APROBADO  => 'bg-success',
-            self::RECHAZADO => 'bg-danger',
+        };
+    }
+
+    /** Color hex de la pill de estado (según el diseño del listado) */
+    public function color(): string
+    {
+        return match ($this) {
+            self::CERTIFICADO  => '#8794a8',
+            self::PENDIENTE => '#f0a020',
+            self::APROBADO  => '#2ba95f',
         };
     }
 

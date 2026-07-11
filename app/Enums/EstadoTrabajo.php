@@ -4,7 +4,8 @@ namespace App\Enums;
 
 enum EstadoTrabajo: string
 {
-    case BORRADOR  = 'borrador';
+    case BORRADOR  = 'borrador';       // legado (registros viejos); los nuevos se crean como PENDIENTE
+    case PENDIENTE = 'pendiente';
     case ENVIADO   = 'enviado';
     case APROBADO  = 'aprobado';
     case RECHAZADO = 'rechazado';
@@ -13,6 +14,7 @@ enum EstadoTrabajo: string
     {
         return match ($this) {
             self::BORRADOR  => 'Borrador',
+            self::PENDIENTE => 'Pendiente de revisión',
             self::ENVIADO   => 'Enviado',
             self::APROBADO  => 'Aprobado',
             self::RECHAZADO => 'Rechazado',
@@ -24,6 +26,7 @@ enum EstadoTrabajo: string
     {
         return match ($this) {
             self::BORRADOR  => 'bg-secondary',
+            self::PENDIENTE => 'bg-warning',
             self::ENVIADO   => 'bg-info',
             self::APROBADO  => 'bg-success',
             self::RECHAZADO => 'bg-danger',

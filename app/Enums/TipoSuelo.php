@@ -7,7 +7,6 @@ enum TipoSuelo: string
     case TIERRA     = 'tierra';
     case CONTRAPISO = 'contrapiso';
     case RIPIO      = 'ripio';
-    case OS         = 'os';
 
     public function label(): string
     {
@@ -15,14 +14,13 @@ enum TipoSuelo: string
             self::TIERRA     => 'Tierra',
             self::CONTRAPISO => 'Contrapiso',
             self::RIPIO      => 'Ripio',
-            self::OS         => 'OS',
         };
     }
 
     /** ¿Este suelo habilita la pregunta de reparación de vereda? */
     public function requiereRepVereda(): bool
     {
-        return in_array($this, [self::CONTRAPISO, self::OS], true);
+        return in_array($this, [self::CONTRAPISO], true);
     }
 
     /** @return array<string,string> value => label */

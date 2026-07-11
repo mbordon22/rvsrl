@@ -155,7 +155,7 @@
                         <li><a href="{{ route('admin.trabajos.ordenes.index') }}">Carga de Trabajos</a></li>
                         @endcan
                         @can('trabajos_periodos.index')
-                        <li><a href="{{ route('admin.trabajos.periodos.index') }}">Certificación (Períodos)</a></li>
+                        <li><a href="{{ route('admin.trabajos.periodos.index') }}">Certificación trabajos</a></li>
                         @endcan
                         @can('listado_lpu.index')
                         <li><a href="{{ route('admin.trabajos.lpu.index') }}">LPU</a></li>

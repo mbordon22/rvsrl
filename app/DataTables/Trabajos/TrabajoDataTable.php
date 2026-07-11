@@ -41,17 +41,36 @@ class TrabajoDataTable extends DataTable
                 return '<span class="badge ' . $row->estado->badge() . '">' . e($row->estado->label()) . '</span>';
             })
             ->addColumn('action', function ($row) {
-                $acciones = ['data' => $row];
-                if (auth()->user()->can('trabajos_ordenes.show')) {
-                    $acciones['show'] = 'admin.trabajos.ordenes.show';
+                $user      = auth()->user();
+                $aprobado  = $row->estado?->value === \App\Enums\EstadoTrabajo::APROBADO->value;
+                $pendiente = $row->estado?->value === \App\Enums\EstadoTrabajo::PENDIENTE->value;
+                $btns      = [];
+
+                // Autorizar: solo con permiso y si está pendiente de revisión
+                if ($pendiente && $user->can('trabajos_ordenes.approve')) {
+                    $btns[] = '<a href="' . route('admin.trabajos.ordenes.edit', $row->id) . '" '
+                        . 'class="btn btn-sm btn-success"><i class="fa fa-check-circle me-1"></i>Autorizar</a>';
                 }
-                if (auth()->user()->can('trabajos_ordenes.edit')) {
-                    $acciones['edit'] = 'admin.trabajos.ordenes.edit';
+
+                if ($user->can('trabajos_ordenes.show')) {
+                    $btns[] = '<a href="' . route('admin.trabajos.ordenes.show', $row->id) . '" '
+                        . 'class="btn btn-sm btn-info"><i class="fa fa-eye me-1"></i>Ver</a>';
                 }
-                if (auth()->user()->can('trabajos_ordenes.trash')) {
-                    $acciones['delete'] = 'admin.trabajos.ordenes.destroy';
+
+                // Un trabajo aprobado solo lo puede editar quien tenga permiso de aprobación
+                if ($user->can('trabajos_ordenes.edit') && (!$aprobado || $user->can('trabajos_ordenes.approve'))) {
+                    $btns[] = '<a href="' . route('admin.trabajos.ordenes.edit', $row->id) . '" '
+                        . 'class="btn btn-sm btn-primary"><i class="fa fa-edit me-1"></i>Editar</a>';
                 }
-                return view('admin.inc.action', $acciones);
+
+                if ($user->can('trabajos_ordenes.trash')) {
+                    $btns[] = '<form action="' . route('admin.trabajos.ordenes.destroy', $row->id) . '" method="POST" '
+                        . 'class="d-inline" onsubmit="return confirm(\'¿Eliminar este trabajo? Esta acción no se puede deshacer.\');">'
+                        . csrf_field() . method_field('DELETE')
+                        . '<button type="submit" class="btn btn-sm btn-danger"><i class="fa fa-trash me-1"></i>Eliminar</button></form>';
+                }
+
+                return '<div class="d-flex gap-1 justify-content-center flex-wrap">' . implode('', $btns) . '</div>';
             })
             ->setRowId('id')
             ->rawColumns(['estado_badge', 'tipo_poste_label', 'lpu_label', 'action']);
@@ -146,7 +165,7 @@ class TrabajoDataTable extends DataTable
                 ->title('Acciones')
                 ->exportable(false)
                 ->printable(false)
-                ->width(90)
+                ->width(260)
                 ->addClass('text-center'),
         ];
     }

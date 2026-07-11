@@ -54,10 +54,23 @@
                         <tr><th>Cuadrilla</th><td>{{ $trabajo->cuadrilla?->nombre }}</td></tr>
                         <tr><th>Vehículo</th><td>{{ $trabajo->vehiculo?->patente ?? '—' }}</td></tr>
                         <tr><th>Domicilio</th><td>{{ $trabajo->domicilio ?: '—' }}</td></tr>
+                        <tr><th>Ubicación</th><td>
+                            @if($trabajo->latitud && $trabajo->longitud)
+                                <a href="https://www.google.com/maps?q={{ $trabajo->latitud }},{{ $trabajo->longitud }}" target="_blank">
+                                    {{ $trabajo->latitud }}, {{ $trabajo->longitud }} — Ver en Maps
+                                </a>
+                            @else — @endif
+                        </td></tr>
                         <tr><th>Central</th><td>{{ $fmt($trabajo->central) }} {{ $trabajo->central_aclarar }}</td></tr>
-                        <tr><th>Armario</th><td>{{ $trabajo->armario ?: '—' }}</td></tr>
-                        <tr><th>Red</th><td>{{ $fmt($trabajo->red) }}</td></tr>
+                        <tr><th>Tipo de trabajo</th><td>{{ $fmt($trabajo->categoria) }}</td></tr>
                         <tr><th>Empleados</th><td>{{ $trabajo->empleados->map(fn($e)=>$e->first_name.' '.$e->last_name)->implode(', ') ?: '—' }}</td></tr>
+                        <tr><th>OT</th><td>{{ $trabajo->ot ?: '—' }}</td></tr>
+                        @if($trabajo->aprobado_at)
+                        <tr><th>Aprobado</th><td>
+                            {{ $trabajo->aprobado_at->format('d/m/Y H:i') }}
+                            @if($trabajo->aprobadoPor) · {{ $trabajo->aprobadoPor->first_name }} {{ $trabajo->aprobadoPor->last_name }} @endif
+                        </td></tr>
+                        @endif
                     </table>
                 </div>
                 <div class="col-md-6">
@@ -65,12 +78,23 @@
                         $colocoTxt = $trabajo->coloco_poste
                             ? ' — ' . $fmt($trabajo->poste_material) . ($trabajo->poste_reutilizado_material ? ' (reutilizado: ' . $fmt($trabajo->poste_reutilizado_material) . ')' : '')
                             : '';
-                        $elementoTxt = $trabajo->elemento_tipo ? $fmt($trabajo->elemento_tipo) . ': ' . $trabajo->elemento_cantidad : '—';
-                        $sifonTxt = $trabajo->sifon ? 'Sí — ' . $trabajo->sifon_cables . ' cables' : 'No — ' . $trabajo->protecciones_cantidad . ' protecciones';
+                        $elementoTxt = collect([
+                            $trabajo->cdo_cantidad ? 'CDO: ' . $trabajo->cdo_cantidad : null,
+                            $trabajo->caja_terminal_cantidad ? 'Caja Terminal: ' . $trabajo->caja_terminal_cantidad : null,
+                            $trabajo->nap_cantidad ? 'NAP: ' . $trabajo->nap_cantidad : null,
+                        ])->filter()->implode(' · ') ?: '—';
+                        $sifonTxt = $trabajo->sifon
+                            ? 'Sí — ' . ($trabajo->sifon_cables ?? 0) . ' cables · ' . ($trabajo->protecciones_cantidad ?? 0) . ' protecciones'
+                            : 'No';
+                        $riendaTxt = collect([
+                            $trabajo->rienda_pique_cantidad ? 'Pique: ' . $trabajo->rienda_pique_cantidad : null,
+                            $trabajo->rienda_tierra_cantidad ? 'Tierra: ' . $trabajo->rienda_tierra_cantidad : null,
+                            $trabajo->rienda_pluma_cantidad ? 'Pluma: ' . $trabajo->rienda_pluma_cantidad : null,
+                        ])->filter()->implode(' · ') ?: '—';
                         $sueloTxt = $fmt($trabajo->tipo_suelo) . ($trabajo->rep_vereda ? ' · Rep. vereda' : '');
                         $otros = collect([
                             $trabajo->poda ? 'Poda' : null,
-                            $trabajo->retensado ? 'Retensó cable/suspensor' : null,
+                            $trabajo->retensado ? 'Retensó cable/suspensor (' . ($trabajo->retensado_cantidad ?? 0) . ')' : null,
                             $trabajo->bajadas ? 'Bajadas (' . $trabajo->bajadas_cantidad . ')' : null,
                         ])->filter()->implode(' · ') ?: '—';
                     @endphp
@@ -80,13 +104,23 @@
                         <tr><th>Tamaño poste</th><td>{{ $fmt($trabajo->tamano_poste) }}</td></tr>
                         <tr><th>CDO / Caja Term. / NAP</th><td>{{ $elementoTxt }}</td></tr>
                         <tr><th>Sifón</th><td>{{ $sifonTxt }}</td></tr>
-                        <tr><th>Rienda</th><td>{{ $si($trabajo->rienda) }} {{ $fmt($trabajo->rienda_tipo) }}</td></tr>
+                        <tr><th>Rienda</th><td>{{ $si($trabajo->rienda) }}{{ $trabajo->rienda ? ' — ' . $riendaTxt : '' }}</td></tr>
                         <tr><th>Tipo de suelo</th><td>{{ $sueloTxt }}</td></tr>
                         <tr><th>Otros</th><td>{{ $otros }}</td></tr>
                     </table>
                 </div>
                 @if($trabajo->observaciones)
                 <div class="col-12"><strong>Observaciones:</strong> {{ $trabajo->observaciones }}</div>
+                @endif
+                @if($trabajo->getMedia('fotos_observaciones')->isNotEmpty())
+                <div class="col-12 mt-2">
+                    <strong>Imágenes de observaciones:</strong>
+                    <div class="d-flex flex-wrap gap-2 mt-1">
+                        @foreach($trabajo->getMedia('fotos_observaciones') as $m)
+                            <a href="{{ $m->getUrl() }}" target="_blank"><img src="{{ $m->getUrl() }}" style="width:120px;height:120px;object-fit:cover;border-radius:6px;"></a>
+                        @endforeach
+                    </div>
+                </div>
                 @endif
             </div>
 

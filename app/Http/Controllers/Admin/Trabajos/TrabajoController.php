@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin\Trabajos;
 
 use App\DataTables\Trabajos\TrabajoDataTable;
+use App\Enums\CategoriaCertificacion;
 use App\Enums\CentralTrabajo;
+use App\Enums\EstadoTrabajo;
 use App\Enums\ElementoRed;
 use App\Enums\MaterialPoste;
 use App\Enums\MaterialReutilizado;
@@ -66,7 +68,7 @@ class TrabajoController extends Controller
             $trabajo = Trabajo::create(array_merge($this->camposDesde($request), [
                 'cuadrilla_id'   => $cuadrilla->id,
                 'user_id'        => auth()->id(),
-                'estado'         => 'borrador',
+                'estado'         => \App\Enums\EstadoTrabajo::PENDIENTE->value,
                 'insert_user_id' => auth()->id(),
             ]));
 
@@ -92,13 +94,19 @@ class TrabajoController extends Controller
 
     public function show(string $id)
     {
-        $trabajo = Trabajo::with(['cuadrilla', 'vehiculo', 'empleados', 'lpu', 'materiales.material'])->findOrFail($id);
+        $trabajo = Trabajo::with(['cuadrilla', 'vehiculo', 'empleados', 'lpu', 'materiales.material', 'aprobadoPor'])->findOrFail($id);
         return view('admin.trabajos.ordenes.show', compact('trabajo'));
     }
 
     public function edit(string $id)
     {
         $trabajo   = Trabajo::with('empleados')->findOrFail($id);
+
+        if (!$this->puedeEditar($trabajo)) {
+            return redirect()->route('admin.trabajos.ordenes.index')
+                ->withErrors(['error' => 'Este trabajo ya fue aprobado; solo un supervisor puede editarlo.']);
+        }
+
         $cuadrilla = $trabajo->cuadrilla;
         $esAdmin   = auth()->user()->hasRole('admin');
 
@@ -113,8 +121,14 @@ class TrabajoController extends Controller
         try {
             $trabajo = Trabajo::findOrFail($id);
 
+            if (!$this->puedeEditar($trabajo)) {
+                return redirect()->route('admin.trabajos.ordenes.index')
+                    ->withErrors(['error' => 'Este trabajo ya fue aprobado; solo un supervisor puede editarlo.']);
+            }
+
             DB::beginTransaction();
 
+            // El estado NO se toca en la edición: un trabajo aprobado sigue aprobado.
             $trabajo->update(array_merge($this->camposDesde($request), [
                 'update_user_id' => auth()->id(),
             ]));
@@ -136,6 +150,38 @@ class TrabajoController extends Controller
             DB::rollBack();
             return redirect()->back()->withInput()
                 ->withErrors(['error' => 'Error al actualizar el trabajo: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Aprueba un trabajo pendiente: registra la OT y la auditoría de aprobación.
+     * Protegida por el permiso trabajos_ordenes.approve (middleware en la ruta).
+     */
+    public function aprobar(Request $request, string $id)
+    {
+        $request->validate([
+            'ot' => 'required|string|max:50',
+        ], [
+            'ot.required' => 'Debés cargar el número/código de OT para aprobar el trabajo.',
+        ]);
+
+        try {
+            $trabajo = Trabajo::findOrFail($id);
+
+            $trabajo->update([
+                'ot'             => $request->ot,
+                'estado'         => \App\Enums\EstadoTrabajo::APROBADO->value,
+                'aprobado_por'   => auth()->id(),
+                'aprobado_at'    => now(),
+                'update_user_id' => auth()->id(),
+            ]);
+
+            return redirect()->route('admin.trabajos.ordenes.index')
+                ->with('success', "Trabajo #{$trabajo->id} aprobado (OT {$trabajo->ot}).");
+
+        } catch (\Exception $e) {
+            return redirect()->back()->withInput()
+                ->withErrors(['error' => 'Error al aprobar el trabajo: ' . $e->getMessage()]);
         }
     }
 
@@ -186,6 +232,18 @@ class TrabajoController extends Controller
     }
 
     /**
+     * ¿El usuario actual puede editar este trabajo?
+     * Un trabajo aprobado queda bloqueado: solo lo edita quien tenga el permiso de aprobación.
+     */
+    private function puedeEditar(Trabajo $trabajo): bool
+    {
+        if ($trabajo->estado === EstadoTrabajo::APROBADO) {
+            return auth()->user()->can('trabajos_ordenes.approve');
+        }
+        return true;
+    }
+
+    /**
      * Cuadrilla activa del usuario logueado.
      */
     private function cuadrillaDelUsuario(): ?Cuadrilla
@@ -206,6 +264,7 @@ class TrabajoController extends Controller
             'empleados'            => $cuadrilla ? $cuadrilla->empleados()->get() : collect(),
             'vehiculos'            => Vehiculo::where('estado', true)->orderBy('patente')->get(),
             'centrales'            => CentralTrabajo::options(),
+            'categorias'           => CategoriaCertificacion::options(),
             'tiposPoste'           => TipoPoste::options(),
             'materialesPoste'      => MaterialPoste::options(),
             'materialesReutilizado'=> MaterialReutilizado::options(),
@@ -223,51 +282,62 @@ class TrabajoController extends Controller
     private function camposDesde(Request $request): array
     {
         $b = fn (string $k) => (bool) $request->input($k, false);
+        // Normaliza un input numérico: vacío/null -> null; si no, entero
+        $n = function (string $k) use ($request) {
+            $val = $request->input($k);
+            return ($val === null || $val === '') ? null : (int) $val;
+        };
 
         $desmonto  = $b('desmonto_poste');
         $coloco    = $b('coloco_poste');
-        $poseePoste = $desmonto || $coloco;   // hay datos de poste (tamaño/material) si desmontó o colocó
+        $poseePoste = $coloco;   // los datos del poste (tamaño/material) aplican SOLO si colocó
         $sifon     = $b('sifon');
         $rienda    = $b('rienda');
+        $retensado = $b('retensado');
         $bajadas   = $b('bajadas');
         $central   = $request->input('central');
         $material  = $request->input('poste_material');
         $suelo     = $request->input('tipo_suelo');
-        $sueloRepVereda = in_array($suelo, [TipoSuelo::CONTRAPISO->value, TipoSuelo::OS->value], true);
+        $sueloRepVereda = in_array($suelo, [TipoSuelo::CONTRAPISO->value], true);
 
         return [
             'fecha'                      => $request->fecha,
             'vehiculo_id'                => $request->vehiculo_id,
             'domicilio'                  => $request->domicilio,
+            'latitud'                    => $request->input('latitud') !== '' ? $request->input('latitud') : null,
+            'longitud'                   => $request->input('longitud') !== '' ? $request->input('longitud') : null,
 
             'central'                    => $central,
             'central_aclarar'            => $central === CentralTrabajo::CYO->value ? $request->central_aclarar : null,
-            'armario'                    => $request->armario,
+            'categoria'                  => $request->categoria ?: null,
 
             'tipo_poste'                 => $request->tipo_poste,
 
             // 1. Desmontó poste
             'desmonto_poste'             => $desmonto,
 
-            // 2. Colocó poste. Tamaño y material aplican si desmontó O colocó (los usan las reglas LPU)
+            // 2. Colocó poste. Tamaño y material aplican SOLO si colocó (los usan las reglas LPU)
             'coloco_poste'               => $coloco,
             'poste_material'             => $poseePoste ? $material : null,
             'poste_reutilizado_material' => ($poseePoste && $material === MaterialPoste::REUTILIZADO->value)
                                                 ? $request->poste_reutilizado_material : null,
             'tamano_poste'               => $poseePoste ? $request->tamano_poste : null,
 
-            // 3. CDO / Caja Terminal / NAP (elegir uno + cantidad)
-            'elemento_tipo'              => $request->elemento_tipo ?: null,
-            'elemento_cantidad'          => $request->elemento_tipo ? $request->elemento_cantidad : null,
+            // 3. CDO / Caja Terminal / NAP (las 3 pueden estar presentes, cada una con su cantidad)
+            'cdo_cantidad'               => $n('cdo_cantidad'),
+            'caja_terminal_cantidad'     => $n('caja_terminal_cantidad'),
+            'nap_cantidad'               => $n('nap_cantidad'),
 
-            // 4. Sifón: si SÍ -> cables; si NO -> protecciones
+            // 4. Sifón: si NO -> nada; si SÍ -> cables + protecciones
             'sifon'                      => $sifon,
-            'sifon_cables'               => $sifon ? $request->sifon_cables : null,
-            'protecciones_cantidad'      => !$sifon ? $request->protecciones_cantidad : null,
+            'sifon_cables'               => $sifon ? $n('sifon_cables') : null,
+            'protecciones_cantidad'      => $sifon ? $n('protecciones_cantidad') : null,
 
-            // 5. Rienda (+ tipo)
+            // 5. Rienda (+ cantidades por tipo: pique / tierra / pluma)
             'rienda'                     => $rienda,
-            'rienda_tipo'                => $rienda ? $request->rienda_tipo : null,
+            'rienda_pique_cantidad'      => $rienda ? $n('rienda_pique_cantidad') : null,
+            'rienda_tierra_cantidad'     => $rienda ? $n('rienda_tierra_cantidad') : null,
+            'rienda_pluma_cantidad'      => $rienda ? $n('rienda_pluma_cantidad') : null,
 
             // 6. Tipo de suelo (+ reparación de vereda si contrapiso/os)
             'tipo_suelo'                 => $suelo,
@@ -276,12 +346,13 @@ class TrabajoController extends Controller
             // 7. Poda
             'poda'                       => $b('poda'),
 
-            // 8. Retensó cable o suspensor
-            'retensado'                  => $b('retensado'),
+            // 8. Retensó cable o suspensor (+ cantidad)
+            'retensado'                  => $retensado,
+            'retensado_cantidad'         => $retensado ? $n('retensado_cantidad') : null,
 
             // 9. Cable de bajada (+ cantidad)
             'bajadas'                    => $bajadas,
-            'bajadas_cantidad'           => $bajadas ? $request->bajadas_cantidad : null,
+            'bajadas_cantidad'           => $bajadas ? $n('bajadas_cantidad') : null,
 
             'observaciones'              => $request->observaciones,
         ];
@@ -296,6 +367,10 @@ class TrabajoController extends Controller
         if ($request->hasFile('fotos_despues')) {
             $trabajo->addMultipleMediaFromRequest(['fotos_despues'])
                 ->each(fn ($file) => $file->toMediaCollection('fotos_despues'));
+        }
+        if ($request->hasFile('fotos_observaciones')) {
+            $trabajo->addMultipleMediaFromRequest(['fotos_observaciones'])
+                ->each(fn ($file) => $file->toMediaCollection('fotos_observaciones'));
         }
     }
 }

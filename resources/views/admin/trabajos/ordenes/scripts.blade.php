@@ -20,15 +20,14 @@
         sel.addEventListener('change', apply);
     });
 
-    // --- Datos del poste (tamaño+material): visibles si desmontó O colocó ---
-    const desmonto = document.getElementById('desmonto_poste');
+    // --- Datos del poste (tamaño+material): visibles SOLO si colocó poste ---
     const coloco = document.getElementById('coloco_poste');
     function aplicarDatosPoste() {
         const grp = document.getElementById('grp-datos-poste');
-        const on = (desmonto && desmonto.checked) || (coloco && coloco.checked);
+        const on = coloco && coloco.checked;
         if (grp) grp.style.display = on ? '' : 'none';
     }
-    [desmonto, coloco].forEach(function (el) { if (el) el.addEventListener('change', aplicarDatosPoste); });
+    if (coloco) { coloco.addEventListener('change', aplicarDatosPoste); }
     aplicarDatosPoste();
 
     // --- Material=reutilizado -> mostrar "qué material se reutilizó" ---
@@ -39,22 +38,12 @@
     }
     if (posteMaterial) { aplicarReutilizado(); posteMaterial.addEventListener('change', aplicarReutilizado); }
 
-    // --- CDO/Caja Terminal/NAP: elegir uno -> mostrar cantidad ---
-    const elemento = document.getElementById('elemento_tipo');
-    function aplicarElemento() {
-        const grp = document.getElementById('grp-elemento-cantidad');
-        if (grp) grp.style.display = (elemento && elemento.value) ? '' : 'none';
-    }
-    if (elemento) { aplicarElemento(); elemento.addEventListener('change', aplicarElemento); }
-
-    // --- Sifón: SÍ -> cables, NO -> protecciones ---
+    // --- Sifón: NO -> nada; SÍ -> cables + protecciones ---
     const sifon = document.getElementById('sifon');
     function aplicarSifon() {
-        const cables = document.getElementById('grp-sifon-cables');
-        const protec = document.getElementById('grp-sifon-protecciones');
+        const datos = document.getElementById('grp-sifon-datos');
         const on = sifon && sifon.checked;
-        if (cables) cables.style.display = on ? '' : 'none';
-        if (protec) protec.style.display = on ? 'none' : '';
+        if (datos) datos.style.display = on ? '' : 'none';
     }
     if (sifon) { aplicarSifon(); sifon.addEventListener('change', aplicarSifon); }
 
@@ -70,12 +59,23 @@
         el.addEventListener('change', function () { marcarActiva(el); });
     });
 
+    // --- CDO/Caja Terminal/NAP: resaltar el bloque si alguna cantidad tiene valor ---
+    const grpElementos = document.getElementById('grp-elementos');
+    const elementoInputs = document.querySelectorAll('.elemento-cantidad');
+    function aplicarElementos() {
+        if (!grpElementos) return;
+        const activa = Array.from(elementoInputs).some(function (i) { return i.value !== '' && Number(i.value) > 0; });
+        grpElementos.classList.toggle('activa', activa);
+    }
+    elementoInputs.forEach(function (i) { i.addEventListener('input', aplicarElementos); });
+    aplicarElementos();
+
     // --- Tipo de suelo: contrapiso/os -> mostrar reparación de vereda ---
     const suelo = document.getElementById('tipo_suelo');
     function aplicarSuelo() {
         const grp = document.getElementById('grp-rep-vereda');
         const val = suelo ? suelo.value : '';
-        if (grp) grp.style.display = (val === 'contrapiso' || val === 'os') ? '' : 'none';
+        if (grp) grp.style.display = (val === 'contrapiso') ? '' : 'none';
     }
     if (suelo) { aplicarSuelo(); suelo.addEventListener('change', aplicarSuelo); }
 
@@ -87,7 +87,7 @@
     function renderEmpleados(empleados) {
         if (!empCont) return;
         if (!empleados.length) {
-            empCont.innerHTML = '<p class="text-muted mb-0">La cuadrilla no tiene empleados asignados.</p>';
+            empCont.innerHTML = '<p class="text-muted mb-0">La cuadrilla no tiene integrantes asignados.</p>';
             return;
         }
         empCont.innerHTML = empleados.map(function (e) {
@@ -99,8 +99,8 @@
 
     function cargarEmpleados(cid) {
         if (!empCont) return;
-        if (!cid) { empCont.innerHTML = '<p class="text-muted mb-0">Seleccioná una cuadrilla para ver sus empleados.</p>'; return; }
-        empCont.innerHTML = '<p class="text-muted mb-0">Cargando empleados…</p>';
+        if (!cid) { empCont.innerHTML = '<p class="text-muted mb-0">Seleccioná una cuadrilla para ver sus integrantes.</p>'; return; }
+        empCont.innerHTML = '<p class="text-muted mb-0">Cargando integrantes…</p>';
         fetch(empBase + '/' + cid + '/empleados')
             .then(function (r) { return r.json(); })
             .then(function (data) { renderEmpleados(data.empleados || []); })
@@ -112,6 +112,50 @@
         // Carga inicial si ya hay una cuadrilla seleccionada y el checklist está vacío (create como admin)
         const yaTieneCheckboxes = empCont && empCont.querySelector('input[type="checkbox"]');
         if (cuadSel.value && !yaTieneCheckboxes) { cargarEmpleados(cuadSel.value); }
+    }
+
+    // --- Ubicación GPS (API de geolocalización del navegador) ---
+    const btnUbic = document.getElementById('btn-ubicacion');
+    const estadoUbic = document.getElementById('ubicacion-estado');
+    const linkUbic = document.getElementById('ubicacion-link');
+    const latI = document.getElementById('latitud');
+    const lngI = document.getElementById('longitud');
+
+    function actualizarLinkUbic() {
+        if (!linkUbic) return;
+        if (latI && lngI && latI.value && lngI.value) {
+            linkUbic.href = 'https://www.google.com/maps?q=' + latI.value + ',' + lngI.value;
+            linkUbic.style.display = '';
+        } else {
+            linkUbic.style.display = 'none';
+        }
+    }
+    actualizarLinkUbic();
+
+    if (btnUbic) {
+        btnUbic.addEventListener('click', function () {
+            if (!('geolocation' in navigator)) {
+                estadoUbic.textContent = 'Este dispositivo no soporta geolocalización.';
+                return;
+            }
+            estadoUbic.textContent = 'Obteniendo ubicación…';
+            btnUbic.disabled = true;
+            navigator.geolocation.getCurrentPosition(
+                function (pos) {
+                    latI.value = pos.coords.latitude.toFixed(7);
+                    lngI.value = pos.coords.longitude.toFixed(7);
+                    estadoUbic.textContent = 'Ubicación cargada (precisión ~' + Math.round(pos.coords.accuracy) + ' m).';
+                    btnUbic.disabled = false;
+                    actualizarLinkUbic();
+                },
+                function (err) {
+                    const msgs = { 1: 'Permiso denegado.', 2: 'Ubicación no disponible.', 3: 'Tiempo de espera agotado.' };
+                    estadoUbic.textContent = 'No se pudo obtener la ubicación: ' + (msgs[err.code] || err.message);
+                    btnUbic.disabled = false;
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        });
     }
 
     // --- Preview de fotos (múltiples) antes de subir ---

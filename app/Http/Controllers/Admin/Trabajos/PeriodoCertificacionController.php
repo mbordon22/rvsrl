@@ -135,6 +135,7 @@ class PeriodoCertificacionController extends Controller
     public function asignarTrabajos(PeriodoCertificacion $periodo): int
     {
         $query = Trabajo::whereNull('periodo_id')
+            ->where('estado', \App\Enums\EstadoTrabajo::APROBADO->value)
             ->whereBetween('fecha', [$periodo->fecha_desde->toDateString(), $periodo->fecha_hasta->toDateString()]);
 
         if ($periodo->cuadrilla_id) {

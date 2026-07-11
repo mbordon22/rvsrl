@@ -265,6 +265,8 @@ Route::group(['middleware' => ['auth'], 'as' => 'admin.', 'prefix' => 'admin'], 
             Route::get('/{id}', [TrabajoController::class, 'show'])->name('show');
             Route::get('/{id}/editar', [TrabajoController::class, 'edit'])->name('edit');
             Route::put('/{id}', [TrabajoController::class, 'update'])->name('update');
+            Route::post('/{id}/aprobar', [TrabajoController::class, 'aprobar'])
+                ->middleware('can:trabajos_ordenes.approve')->name('aprobar');
             Route::delete('/{id}', [TrabajoController::class, 'destroy'])->name('destroy');
         });
 

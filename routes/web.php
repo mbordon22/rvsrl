@@ -262,11 +262,23 @@ Route::group(['middleware' => ['auth'], 'as' => 'admin.', 'prefix' => 'admin'], 
             Route::post('/', [TrabajoController::class, 'store'])->name('store');
             Route::get('/foto/{mediaId}/eliminar', [TrabajoController::class, 'removeFoto'])->name('removeFoto');
             Route::get('/cuadrilla/{cuadrillaId}/empleados', [TrabajoController::class, 'empleadosPorCuadrilla'])->name('empleadosPorCuadrilla');
+            Route::get('/materiales/buscar', [TrabajoController::class, 'buscarMateriales'])
+                ->middleware('can:trabajos_ordenes.approve')->name('buscarMateriales');
             Route::get('/{id}', [TrabajoController::class, 'show'])->name('show');
             Route::get('/{id}/editar', [TrabajoController::class, 'edit'])->name('edit');
             Route::put('/{id}', [TrabajoController::class, 'update'])->name('update');
+            Route::get('/{id}/revisar', [TrabajoController::class, 'revisar'])
+                ->middleware('can:trabajos_ordenes.approve')->name('revisar');
+            Route::post('/{id}/revisar', [TrabajoController::class, 'guardarRevision'])
+                ->middleware('can:trabajos_ordenes.approve')->name('guardarRevision');
+            Route::post('/{id}/revertir', [TrabajoController::class, 'revertir'])
+                ->middleware('can:trabajos_ordenes.approve')->name('revertir');
             Route::post('/{id}/aprobar', [TrabajoController::class, 'aprobar'])
                 ->middleware('can:trabajos_ordenes.approve')->name('aprobar');
+            Route::post('/{id}/materiales', [TrabajoController::class, 'guardarMateriales'])
+                ->middleware('can:trabajos_ordenes.approve')->name('materiales');
+            Route::post('/{id}/materiales/regenerar', [TrabajoController::class, 'regenerarMateriales'])
+                ->middleware('can:trabajos_ordenes.approve')->name('regenerarMateriales');
             Route::delete('/{id}', [TrabajoController::class, 'destroy'])->name('destroy');
         });
 
@@ -275,9 +287,10 @@ Route::group(['middleware' => ['auth'], 'as' => 'admin.', 'prefix' => 'admin'], 
             Route::get('/', [PeriodoCertificacionController::class, 'index'])->middleware('can:trabajos_periodos.index')->name('index');
             Route::get('/nuevo', [PeriodoCertificacionController::class, 'create'])->middleware('can:trabajos_periodos.create')->name('create');
             Route::post('/', [PeriodoCertificacionController::class, 'store'])->middleware('can:trabajos_periodos.create')->name('store');
+            Route::get('/candidatos/contar', [PeriodoCertificacionController::class, 'contarCandidatos'])->middleware('can:trabajos_periodos.create')->name('contarCandidatos');
             Route::get('/{id}', [PeriodoCertificacionController::class, 'show'])->middleware('can:trabajos_periodos.index')->name('show');
             Route::put('/{id}/meta', [PeriodoCertificacionController::class, 'updateMeta'])->middleware('can:trabajos_periodos.edit')->name('updateMeta');
-            Route::post('/{id}/agregar', [PeriodoCertificacionController::class, 'agregarSeleccionados'])->middleware('can:trabajos_periodos.edit')->name('agregar');
+            Route::post('/{id}/seleccion', [PeriodoCertificacionController::class, 'guardarSeleccion'])->middleware('can:trabajos_periodos.edit')->name('seleccion');
             Route::delete('/{id}/trabajo/{trabajoId}', [PeriodoCertificacionController::class, 'quitarTrabajo'])->middleware('can:trabajos_periodos.edit')->name('quitarTrabajo');
             Route::post('/{id}/cerrar', [PeriodoCertificacionController::class, 'cerrar'])->middleware('can:trabajos_periodos.edit')->name('cerrar');
             Route::get('/{id}/exportar', [PeriodoCertificacionController::class, 'showExportar'])->middleware('can:trabajos_periodos.export')->name('showExportar');

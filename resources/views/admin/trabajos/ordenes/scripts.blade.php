@@ -173,5 +173,55 @@
             });
         });
     });
+
+    // --- Rail de navegación + scroll interno del formulario (solo desktop) ---
+    const railItems = Array.prototype.slice.call(document.querySelectorAll('.nt-rail-item'));
+    const layout = document.querySelector('.nt-layout');
+    const cont   = document.querySelector('.nt-col'); // el que scrollea
+    if (railItems.length && layout && cont) {
+        const secciones = railItems
+            .map(function (it) { return document.getElementById(it.getAttribute('data-target')); })
+            .filter(Boolean);
+
+        function isDesktop() { return window.matchMedia('(min-width: 992px)').matches; }
+
+        // Acota la altura del layout para que .nt-col scrollee y el rail quede fijo.
+        function ajustarAltura() {
+            if (!isDesktop()) { layout.style.height = ''; return; }
+            const top = layout.getBoundingClientRect().top; // distancia desde el tope del viewport
+            const h = window.innerHeight - top - 16;
+            layout.style.height = Math.max(320, h) + 'px';
+        }
+
+        // Resalta la sección visible según el scroll del formulario.
+        function marcarActiva() {
+            let actual = secciones[0];
+            secciones.forEach(function (el) {
+                if (el.offsetTop - cont.scrollTop <= 24) actual = el;
+            });
+            railItems.forEach(function (it) {
+                it.classList.toggle('active', actual && it.getAttribute('data-target') === actual.id);
+            });
+        }
+
+        // Click: scroll suave a la sección dentro del contenedor del formulario.
+        railItems.forEach(function (it) {
+            it.addEventListener('click', function () {
+                const el = document.getElementById(it.getAttribute('data-target'));
+                if (!el) return;
+                if (isDesktop()) {
+                    cont.scrollTo({ top: Math.max(0, el.offsetTop - 8), behavior: 'smooth' });
+                } else {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        cont.addEventListener('scroll', marcarActiva, { passive: true });
+        window.addEventListener('resize', function () { ajustarAltura(); marcarActiva(); }, { passive: true });
+        window.addEventListener('load', ajustarAltura);
+        ajustarAltura();
+        marcarActiva();
+    }
 })();
 </script>

@@ -78,6 +78,33 @@
     object-fit: cover;
 }
 
+/* ============================================================
+   Fix GLOBAL de labels/textos en blanco sobre fondo claro.
+   El tema define $theme-body-sub-title-color: #FFFFFF (blanco), que se
+   hereda en labels de formulario y los deja ilegibles sobre fondo claro
+   (p. ej. el drawer "Datos de la certificación"). Forzamos el color de
+   texto oscuro del tema en todos los labels.
+   Los textos que DEBEN ser blancos (badges, botones, headers de color,
+   utilidades .text-white) tienen su propia regla de color con mayor
+   prioridad y NO se ven afectados.
+   ============================================================ */
+.form-label,
+.col-form-label {
+    color: #051A1A !important;
+}
+label:not(.text-white):not(.text-light) {
+    color: #051A1A;
+}
+
+/* El tema define `body { overflow-x: hidden }`, lo que crea un contenedor de
+   scroll y ROMPE `position: sticky` en cualquier descendiente (p. ej. el rail
+   de navegación de "Nuevo Trabajo" se perdía al hacer scroll). `overflow-x: clip`
+   recorta igual el desborde horizontal pero NO crea contenedor de scroll, así
+   que el sticky vuelve a funcionar. */
+body {
+    overflow-x: clip;
+}
+
 /* Flechas del carrusel de facturas: los íconos de Bootstrap son blancos por
    defecto y no se ven sobre el fondo blanco del modal. Las pasamos a negro. */
 #viewFilesCombustibleModal .carousel-control-prev-icon,

@@ -63,10 +63,16 @@ class TrabajoDataTable extends DataTable
 
                 $btns = [];
 
-                // Autorizar: solo con permiso y si está pendiente de revisión
+                // Revisar/Autorizar: solo con permiso y si está pendiente de revisión
                 if ($pendiente && $user->can('trabajos_ordenes.approve')) {
-                    $btns[] = '<a href="' . route('admin.trabajos.ordenes.edit', $row->id) . '" '
-                        . 'class="act-btn act-autorizar" title="Autorizar trabajo">' . $svgCheck . 'Autorizar</a>';
+                    $btns[] = '<a href="' . route('admin.trabajos.ordenes.revisar', $row->id) . '" '
+                        . 'class="act-btn act-autorizar" title="Revisar y aprobar">' . $svgCheck . 'Revisar</a>';
+                }
+
+                // Trabajo aprobado: acceso a la pantalla de revisión (para revertir / re-revisar)
+                if ($row->estado?->value === \App\Enums\EstadoTrabajo::APROBADO->value && $user->can('trabajos_ordenes.approve')) {
+                    $btns[] = '<a href="' . route('admin.trabajos.ordenes.revisar', $row->id) . '" '
+                        . 'class="act-icon act-ver" title="Revisar">' . $svgCheck . '</a>';
                 }
 
                 if ($user->can('trabajos_ordenes.show')) {

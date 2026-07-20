@@ -17,7 +17,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Trabajos\CreateTrabajoRequest;
 use App\Http\Requests\Admin\Trabajos\UpdateTrabajoRequest;
 use App\Models\Cuadrilla;
+use App\Models\Material;
 use App\Models\Trabajo;
+use App\Models\TrabajoMaterial;
 use App\Models\Vehiculo;
 use App\Services\AsignadorLpuService;
 use App\Services\GeneradorMaterialesService;
@@ -105,9 +107,128 @@ class TrabajoController extends Controller
         return view('admin.trabajos.ordenes.show', compact('trabajo'));
     }
 
+    /**
+     * Pantalla de revisión/aprobación del supervisor (diseño "Revisar Trabajo").
+     * Permite editar los datos inline + curar materiales y aprobar en un solo paso.
+     * Protegida por trabajos_ordenes.approve (middleware en la ruta).
+     */
+    public function revisar(string $id)
+    {
+        $trabajo = Trabajo::with(['cuadrilla', 'vehiculo', 'empleados', 'materiales.material', 'lpu', 'user', 'aprobadoPor'])
+            ->findOrFail($id);
+
+        $esAdmin = auth()->user()->hasRole('admin');
+
+        return view('admin.trabajos.ordenes.revisar', array_merge(
+            $this->datosFormulario($trabajo->cuadrilla, $esAdmin),
+            ['trabajo' => $trabajo, 'empleadosSeleccionados' => $trabajo->empleados->pluck('id')->all()]
+        ));
+    }
+
+    /**
+     * Guarda la revisión: persiste datos + materiales curados y, si accion=aprobar,
+     * registra la OT y aprueba. Todo en una transacción, desde la pantalla de revisión.
+     * Protegida por trabajos_ordenes.approve (middleware en la ruta).
+     */
+    public function guardarRevision(UpdateTrabajoRequest $request, string $id)
+    {
+        $trabajo = Trabajo::findOrFail($id);
+
+        if (!$this->puedeEditar($trabajo)) {
+            return redirect()->route('admin.trabajos.ordenes.index')
+                ->withErrors(['error' => 'Este trabajo ya no se puede modificar.']);
+        }
+
+        $aprobar = $request->input('accion') === 'aprobar';
+
+        // Validaciones extra al aprobar: OT obligatoria y categoría cargada.
+        if ($aprobar) {
+            $request->validate([
+                'ot' => 'required|string|max:50',
+            ], [
+                'ot.required' => 'Debés cargar el número/código de OT para aprobar el trabajo.',
+            ]);
+
+            if (!$request->input('categoria')) {
+                return redirect()->back()->withInput()
+                    ->withErrors(['error' => 'Cargá la categoría (tipo de trabajo: mantenimiento u obra) en Infraestructura antes de aprobar.']);
+            }
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $trabajo->update(array_merge($this->camposDesde($request), [
+                'update_user_id' => auth()->id(),
+            ]));
+
+            $trabajo->empleados()->sync($request->input('empleados', []));
+
+            // El LPU se recalcula desde los datos. Los materiales quedan como los dejó
+            // el supervisor (origen 'manual'): NO se regeneran desde las reglas.
+            $trabajo->lpu_id = $this->asignadorLpu->asignar($trabajo);
+            $trabajo->save();
+            $this->reemplazarMaterialesDesde($trabajo, $request);
+
+            if ($aprobar) {
+                $trabajo->update([
+                    'ot'           => $request->ot,
+                    'estado'       => EstadoTrabajo::APROBADO->value,
+                    'aprobado_por' => auth()->id(),
+                    'aprobado_at'  => now(),
+                ]);
+            }
+
+            DB::commit();
+
+            if ($aprobar) {
+                return redirect()->route('admin.trabajos.ordenes.index')
+                    ->with('success', "Trabajo #{$trabajo->id} aprobado (OT {$trabajo->ot}).");
+            }
+
+            return redirect()->route('admin.trabajos.ordenes.revisar', $trabajo->id)
+                ->with('success', 'Cambios guardados.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->withInput()
+                ->withErrors(['error' => 'Error al guardar la revisión: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Revierte un trabajo aprobado a pendiente (limpia OT y auditoría de aprobación).
+     * No aplica a certificados. Protegida por trabajos_ordenes.approve.
+     */
+    public function revertir(string $id)
+    {
+        try {
+            $trabajo = Trabajo::findOrFail($id);
+
+            if ($trabajo->estado !== EstadoTrabajo::APROBADO) {
+                return redirect()->back()
+                    ->withErrors(['error' => 'Solo se puede revertir un trabajo aprobado.']);
+            }
+
+            $trabajo->update([
+                'estado'         => EstadoTrabajo::PENDIENTE->value,
+                'ot'             => null,
+                'aprobado_por'   => null,
+                'aprobado_at'    => null,
+                'update_user_id' => auth()->id(),
+            ]);
+
+            return redirect()->route('admin.trabajos.ordenes.revisar', $trabajo->id)
+                ->with('success', 'Aprobación revertida. El trabajo volvió a Pendiente de revisión.');
+
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors(['error' => 'Error al revertir la aprobación: ' . $e->getMessage()]);
+        }
+    }
+
     public function edit(string $id)
     {
-        $trabajo   = Trabajo::with('empleados')->findOrFail($id);
+        $trabajo   = Trabajo::with(['empleados', 'materiales.material'])->findOrFail($id);
 
         if (!$this->puedeEditar($trabajo)) {
             return redirect()->route('admin.trabajos.ordenes.index')
@@ -143,10 +264,17 @@ class TrabajoController extends Controller
             $trabajo->empleados()->sync($request->input('empleados', []));
             $this->guardarFotos($trabajo, $request);
 
-            // Recalcular LPU + materiales según las reglas (por si cambiaron las respuestas)
-            $trabajo->lpu_id = $this->asignadorLpu->asignar($trabajo);
-            $trabajo->save();
-            $this->generadorMateriales->regenerar($trabajo);
+            // Recalcular LPU siempre mientras esté pendiente (por si cambiaron las respuestas).
+            // Los materiales se regeneran desde las reglas SOLO si está pendiente y nadie los
+            // ajustó a mano: una vez que el supervisor los curó (origen 'manual') o el trabajo
+            // fue aprobado, se preservan tal cual (no se auto-regeneran).
+            if ($trabajo->estado === EstadoTrabajo::PENDIENTE) {
+                $trabajo->lpu_id = $this->asignadorLpu->asignar($trabajo);
+                $trabajo->save();
+                if (!$trabajo->materiales()->where('origen', 'manual')->exists()) {
+                    $this->generadorMateriales->regenerar($trabajo);
+                }
+            }
 
             DB::commit();
 
@@ -199,6 +327,86 @@ class TrabajoController extends Controller
         }
     }
 
+    /**
+     * Guarda la edición de materiales de un trabajo (revisión del supervisor).
+     * Reemplaza la lista por lo enviado (todo pasa a origen 'manual') + agrega por código.
+     * Protegida por el permiso trabajos_ordenes.approve (middleware en la ruta).
+     */
+    public function guardarMateriales(Request $request, string $id)
+    {
+        try {
+            $trabajo = Trabajo::findOrFail($id);
+
+            DB::beginTransaction();
+
+            $this->reemplazarMaterialesDesde($trabajo, $request);
+
+            $trabajo->update_user_id = auth()->id();
+            $trabajo->save();
+
+            DB::commit();
+
+            return redirect()->back()->with('success', 'Materiales actualizados.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->withErrors(['error' => 'Error al guardar los materiales: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Reemplaza los materiales del trabajo por lo enviado en el request
+     * (todo pasa a origen 'manual') + alta opcional por código. Lanza excepción
+     * si el código nuevo no existe (para que el caller haga rollback).
+     */
+    private function reemplazarMaterialesDesde(Trabajo $trabajo, Request $request): void
+    {
+        $trabajo->materiales()->delete();
+
+        $ids   = $request->input('material_id', []);
+        $cants = $request->input('cantidad', []);
+        foreach ($ids as $i => $matId) {
+            $cant = (float) ($cants[$i] ?? 0);
+            if (!$matId || $cant <= 0) continue;
+            TrabajoMaterial::create([
+                'trabajo_id'  => $trabajo->id,
+                'material_id' => $matId,
+                'cantidad'    => $cant,
+                'origen'      => 'manual',
+            ]);
+        }
+
+        // Material nuevo por código (opcional)
+        if ($request->filled('nuevo_codigo') && (float) $request->input('nuevo_cantidad', 0) > 0) {
+            $mat = Material::where('codigo', trim($request->nuevo_codigo))->first();
+            if (!$mat) {
+                throw new \RuntimeException("No se encontró el material con código {$request->nuevo_codigo}.");
+            }
+            TrabajoMaterial::updateOrCreate(
+                ['trabajo_id' => $trabajo->id, 'material_id' => $mat->id],
+                ['cantidad' => (float) $request->nuevo_cantidad, 'origen' => 'manual']
+            );
+        }
+    }
+
+    /**
+     * Regenera los materiales del trabajo desde las reglas (descarta ajustes manuales).
+     * Protegida por el permiso trabajos_ordenes.approve (middleware en la ruta).
+     */
+    public function regenerarMateriales(string $id)
+    {
+        try {
+            $trabajo = Trabajo::findOrFail($id);
+            $trabajo->materiales()->delete();      // borra TODO (incluye manuales)
+            $this->generadorMateriales->regenerar($trabajo);
+
+            return redirect()->back()->with('success', 'Materiales regenerados desde las reglas.');
+
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors(['error' => 'Error al regenerar materiales: ' . $e->getMessage()]);
+        }
+    }
+
     public function destroy(string $id)
     {
         try {
@@ -229,6 +437,35 @@ class TrabajoController extends Controller
             : [];
 
         return response()->json(['success' => true, 'empleados' => $empleados]);
+    }
+
+    /**
+     * Búsqueda de materiales para el Select2 (por código o descripción) de la
+     * pantalla de revisión. Devuelve el formato que espera Select2 (results[]).
+     */
+    public function buscarMateriales(Request $request)
+    {
+        $q = trim((string) $request->input('q', ''));
+
+        $items = Material::query()
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($w) use ($q) {
+                    $w->where('codigo', 'like', "%{$q}%")
+                      ->orWhere('descripcion', 'like', "%{$q}%");
+                });
+            })
+            ->orderBy('codigo')
+            ->limit(20)
+            ->get(['id', 'codigo', 'descripcion']);
+
+        return response()->json([
+            'results' => $items->map(fn ($m) => [
+                'id'          => $m->id,
+                'text'        => $m->codigo . ' — ' . $m->descripcion,
+                'codigo'      => $m->codigo,
+                'descripcion' => $m->descripcion,
+            ])->all(),
+        ]);
     }
 
     public function removeFoto(string $mediaId)

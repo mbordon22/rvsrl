@@ -49,12 +49,63 @@
     /* Switches más grandes y visibles */
     .trabajo-form .form-switch .form-check-input { width:2.6em; height:1.35em; cursor:pointer; border-color:#97a2b2; }
     .trabajo-form .form-switch .form-check-input:checked { background-color:#28a745; border-color:#28a745; }
+
+    /* Offset de scroll para el rail (todas las medidas, inocuo en mobile) */
+    .trabajo-form .card[id] { scroll-margin-top:90px; }
+
+    /* ===================================================================
+       DISEÑO DESKTOP ("Nuevo Trabajo (Desktop).dc.html").
+       Solo aplica a >=992px; en mobile el formulario queda como estaba.
+       =================================================================== */
+    @media (min-width: 992px) {
+        /* Layout de altura acotada (JS setea la altura): el rail queda fijo y
+           SOLO el formulario (.nt-col) scrollea internamente. */
+        .trabajo-form .nt-layout { display:flex; align-items:flex-start; gap:24px; overflow:hidden; }
+        .trabajo-form .nt-rail { width:238px; flex:none; max-height:100%; overflow-y:auto; }
+        .trabajo-form .nt-col { flex:1; min-width:0; max-width:1120px; height:100%; overflow-y:auto; position:relative; padding-right:6px; }
+
+        .nt-rail-box { background:#fff; border:1px solid #e6eaf1; border-radius:12px; padding:12px; }
+        .nt-rail-title { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:#9aa6b8; padding:8px 10px 10px; }
+        .nt-rail-item { display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px; cursor:pointer; font-size:14px; color:#5a6b82; font-weight:500; transition:all .15s; text-decoration:none; }
+        .nt-rail-item:hover { background:#f4f6fb; color:#3949ab; }
+        .nt-rail-item.active { background:#eef0fb; color:#3949ab; font-weight:600; }
+        .nt-rail-item .dot { width:7px; height:7px; border-radius:50%; background:#c9d2e0; flex:none; }
+        .nt-rail-item.active .dot { background:#4f5fbf; }
+        .nt-rail-note { background:#eef2fb; border:1px solid #dbe3f5; border-radius:12px; padding:14px 16px; margin-top:14px; font-size:12.5px; line-height:1.5; color:#5a6b82; }
+
+        /* Preguntas de "Trabajo realizado": una por fila (una sola columna) */
+        .trabajo-form .preguntas-grid { display:grid; grid-template-columns:1fr; gap:14px; }
+        .trabajo-form .preguntas-grid > .pregunta { margin-bottom:0; }
+
+        /* Integrantes como chips */
+        .trabajo-form #empleados-container .form-check-inline { margin:0 !important; padding:8px 14px; border:1.5px solid #d5dce6; border-radius:24px; background:#fff; }
+
+        /* Barra de guardado sticky */
+        .trabajo-form .nt-savebar { position:sticky; bottom:0; background:#fff; border:1px solid #e6eaf1; border-radius:12px; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; gap:14px; box-shadow:0 -6px 22px rgba(30,40,70,.07); }
+    }
 </style>
 
 <div class="form theme-form trabajo-form">
+<div class="nt-layout">
+
+    {{-- Rail de navegación de secciones (solo desktop) --}}
+    <aside class="nt-rail d-none d-lg-block">
+        <div class="nt-rail-box">
+            <div class="nt-rail-title">Secciones</div>
+            <a class="nt-rail-item active" data-target="sec-generales"><span class="dot"></span>Datos generales</a>
+            <a class="nt-rail-item" data-target="sec-integrantes"><span class="dot"></span>Integrantes</a>
+            <a class="nt-rail-item" data-target="sec-infra"><span class="dot"></span>Infraestructura</a>
+            <a class="nt-rail-item" data-target="sec-trabajo"><span class="dot"></span>Trabajo realizado</a>
+            <a class="nt-rail-item" data-target="sec-fotos"><span class="dot"></span>Fotos</a>
+            <a class="nt-rail-item" data-target="sec-obs"><span class="dot"></span>Observaciones</a>
+        </div>
+        <div class="nt-rail-note">Los campos con <span style="color:#e23b3b">*</span> son obligatorios. Las preguntas se habilitan según lo realizado en el poste.</div>
+    </aside>
+
+    <div class="nt-col">
 
     {{-- ===== 1. DATOS GENERALES ===== --}}
-    <div class="card shadow-none border mb-3">
+    <div class="card shadow-none border mb-3" id="sec-generales">
         <div class="card-header py-2"><h6 class="mb-0">Datos generales</h6></div>
         <div class="card-body">
             <div class="row g-3">
@@ -123,7 +174,7 @@
     </div>
 
     {{-- ===== 2. EMPLEADOS ===== --}}
-    <div class="card shadow-none border mb-3">
+    <div class="card shadow-none border mb-3" id="sec-integrantes">
         <div class="card-header py-2"><h6 class="mb-0">Integrantes de la cuadrilla</h6></div>
         <div class="card-body" id="empleados-container">
             @forelse($empleados as $emp)
@@ -141,7 +192,7 @@
     </div>
 
     {{-- ===== 3. INFRAESTRUCTURA ===== --}}
-    <div class="card shadow-none border mb-3">
+    <div class="card shadow-none border mb-3" id="sec-infra">
         <div class="card-header py-2"><h6 class="mb-0">Infraestructura</h6></div>
         <div class="card-body">
             <div class="row g-3">
@@ -172,12 +223,12 @@
     </div>
 
     {{-- ===== TRABAJO REALIZADO (preguntas en orden) ===== --}}
-    <div class="card shadow-none border mb-3">
+    <div class="card shadow-none border mb-3" id="sec-trabajo">
         <div class="card-header py-2"><h6 class="mb-0">Trabajo realizado</h6></div>
-        <div class="card-body">
+        <div class="card-body preguntas-grid">
 
             {{-- Tipo de poste (define la certificación) --}}
-            <div class="pregunta">
+            <div class="pregunta pregunta-full">
                 <label class="pregunta-titulo d-block mb-2">Tipo de poste</label>
                 <select name="tipo_poste" class="form-select form-select-lg pregunta-control">
                     <option value="">Seleccione…</option>
@@ -208,7 +259,7 @@
             </div>
 
             {{-- Datos del poste (tamaño + material) — visibles SOLO si colocó --}}
-            <div class="pregunta conditional" id="grp-datos-poste">
+            <div class="pregunta pregunta-full conditional" id="grp-datos-poste">
                 <label class="pregunta-titulo d-block mb-2">Datos del poste</label>
                 <div class="row g-2">
                     <div class="col-12 col-sm-4">
@@ -242,7 +293,7 @@
             </div>
 
             {{-- 3. CDO / Caja Terminal / NAP (las 3 pueden estar, cada una con su cantidad) --}}
-            <div class="pregunta" id="grp-elementos">
+            <div class="pregunta pregunta-full" id="grp-elementos">
                 <label class="pregunta-titulo d-block mb-2">3. CDO / Caja Terminal / NAP</label>
                 <div class="row g-2">
                     @foreach($elementosRed as $val => $lab)
@@ -298,7 +349,7 @@
             </div>
 
             {{-- 6. Tipo de suelo (+ reparación de vereda) --}}
-            <div class="pregunta">
+            <div class="pregunta pregunta-full">
                 <label class="pregunta-titulo d-block mb-2" for="tipo_suelo">6. Tipo de suelo</label>
                 <select name="tipo_suelo" id="tipo_suelo" class="form-select form-select-lg pregunta-control">
                     <option value="">Seleccione…</option>
@@ -355,7 +406,7 @@
     </div>
 
     {{-- ===== FOTOS ===== --}}
-    <div class="card shadow-none border mb-3">
+    <div class="card shadow-none border mb-3" id="sec-fotos">
         <div class="card-header py-2"><h6 class="mb-0">Fotos</h6></div>
         <div class="card-body">
             <div class="row g-3">
@@ -396,7 +447,7 @@
     </div>
 
     {{-- ===== OBSERVACIONES ===== --}}
-    <div class="card shadow-none border mb-3">
+    <div class="card shadow-none border mb-3" id="sec-obs">
         <div class="card-body">
             <label class="form-label">Observaciones</label>
             <textarea class="form-control" name="observaciones" rows="3">{{ $v('observaciones') }}</textarea>
@@ -420,7 +471,14 @@
         </div>
     </div>
 
-    <div class="text-end pb-4">
-        <button type="submit" class="btn btn-success btn-lg w-100 w-sm-auto">Guardar trabajo</button>
+    <div class="nt-savebar pb-4 pb-lg-0">
+        <span class="nt-savenote d-none d-lg-block text-muted small">Se guarda como <strong>Pendiente de revisión</strong></span>
+        <div class="d-flex gap-2 justify-content-end">
+            <a href="{{ route('admin.trabajos.ordenes.index') }}" class="btn btn-light d-none d-lg-inline-block">Cancelar</a>
+            <button type="submit" class="btn btn-success btn-lg w-100 w-sm-auto">Guardar trabajo</button>
+        </div>
     </div>
-</div>
+
+    </div>{{-- /.nt-col --}}
+</div>{{-- /.nt-layout --}}
+</div>{{-- /.trabajo-form --}}

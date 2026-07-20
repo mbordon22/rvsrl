@@ -33,50 +33,6 @@
                 @method('PUT')
                 @include('admin.trabajos.ordenes.fields')
             </form>
-
-            @can('trabajos_ordenes.approve')
-                <div class="card shadow-none border mb-4">
-                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">Aprobación</h6>
-                        <span class="badge {{ $trabajo->estado?->badge() }}">{{ $trabajo->estado?->label() }}</span>
-                    </div>
-                    <div class="card-body">
-                        @if(in_array($trabajo->estado, [\App\Enums\EstadoTrabajo::APROBADO, \App\Enums\EstadoTrabajo::CERTIFICADO], true))
-                            <p class="mb-1"><strong>Trabajo {{ strtolower($trabajo->estado->label()) }}.</strong></p>
-                            <p class="mb-0 text-muted">
-                                OT: <strong>{{ $trabajo->ot ?: '—' }}</strong>
-                                @if($trabajo->aprobadoPor)
-                                    · Aprobado por {{ $trabajo->aprobadoPor->first_name }} {{ $trabajo->aprobadoPor->last_name }}
-                                @endif
-                                @if($trabajo->aprobado_at)
-                                    · {{ $trabajo->aprobado_at->format('d/m/Y H:i') }}
-                                @endif
-                            </p>
-                        @elseif(!$trabajo->categoria)
-                            <div class="alert alert-warning mb-0">
-                                <i class="fa fa-exclamation-triangle me-1"></i>
-                                Falta cargar la <strong>categoría (tipo de trabajo)</strong> en la sección Infraestructura.
-                                Cargala y guardá arriba para poder aprobar el trabajo.
-                            </div>
-                        @else
-                            <p class="text-muted">Revisá el trabajo (podés corregir lo que haga falta y guardar arriba), cargá la OT y aprobalo.</p>
-                            <form action="{{ route('admin.trabajos.ordenes.aprobar', $trabajo->id) }}" method="POST" class="row g-2 align-items-end"
-                                onsubmit="return confirm('¿Aprobar este trabajo? Quedará disponible para certificar.');">
-                                @csrf
-                                <div class="col-12 col-sm-4">
-                                    <label class="form-label">N° / código de OT <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control form-control-lg" name="ot" value="{{ old('ot', $trabajo->ot) }}" placeholder="Ej: OT-12345" required>
-                                </div>
-                                <div class="col-12 col-sm-auto">
-                                    <button type="submit" class="btn btn-success btn-lg">
-                                        <i class="fa fa-check me-1"></i> Aprobar trabajo
-                                    </button>
-                                </div>
-                            </form>
-                        @endif
-                    </div>
-                </div>
-            @endcan
         </div>
     </div>
 </div>

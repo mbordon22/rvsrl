@@ -66,50 +66,44 @@ class PeriodoCertificacionController extends Controller
     public function show(string $id)
     {
         $periodo = PeriodoCertificacion::with('cuadrilla')->findOrFail($id);
-
-        $trabajos = $periodo->trabajos()
-            ->with(['lpu', 'cuadrilla', 'materiales.material'])
-            ->orderBy('fecha')
-            ->get();
-
         $campoPrecio = $periodo->categoria->campoPrecio();
 
-        // Resumen de certificación (por código LPU)
-        $lpuResumen = $trabajos->filter(fn ($t) => $t->lpu)
-            ->groupBy('lpu_id')
-            ->map(function ($grupo) use ($campoPrecio) {
-                $lpu    = $grupo->first()->lpu;
-                $precio = (float) $lpu->{$campoPrecio};
-                $cant   = $grupo->count();
-                return [
-                    'lpu'      => $lpu,
-                    'cantidad' => $cant,
-                    'precio'   => $precio,
-                    'subtotal' => $cant * $precio,
-                ];
-            })->values();
+        // Trabajos ya incluidos en el período
+        $incluidos = $periodo->trabajos()
+            ->with(['lpu', 'cuadrilla', 'materiales.material'])
+            ->orderBy('fecha')->get();
 
-        // Resumen de consumos (materiales sumados)
-        $materialesResumen = $trabajos->flatMap->materiales
-            ->groupBy('material_id')
-            ->map(function ($grupo) {
-                return [
-                    'material' => $grupo->first()->material,
-                    'cantidad' => $grupo->sum('cantidad'),
-                ];
-            })->values();
-
-        $totalCertificado = $lpuResumen->sum('subtotal');
-        $sinLpu           = $trabajos->whereNull('lpu_id')->count();
-
-        // Trabajos candidatos para agregar (solo si el período está abierto)
+        // Candidatos para agregar (solo si el período está abierto)
         $candidatos = $periodo->estado === 'abierto'
-            ? $this->candidatosQuery($periodo)->with('cuadrilla')->orderBy('fecha')->get()
+            ? $this->candidatosQuery($periodo)->with(['lpu', 'cuadrilla', 'materiales.material'])->orderBy('fecha')->get()
             : collect();
 
-        return view('admin.trabajos.periodos.show', compact(
-            'periodo', 'trabajos', 'lpuResumen', 'materialesResumen', 'totalCertificado', 'sinLpu', 'candidatos'
-        ));
+        // Mapea cada trabajo a los datos que consume el resumen en vivo del front
+        $map = function (Trabajo $t, bool $incluido) use ($campoPrecio): array {
+            return [
+                'id'        => $t->id,
+                'fecha'     => $t->fecha?->format('d/m/Y'),
+                'cuadrilla' => $t->cuadrilla?->nombre ?? '—',
+                'domicilio' => $t->domicilio ?: '—',
+                'poste'     => $t->tipo_poste?->label() ?? '—',
+                'posteBg'   => $t->tipo_poste?->value === 'terminal' ? '#3d3f8f' : '#2f4b7c',
+                'lpu'       => $t->lpu?->codigo_lpu,
+                'lpuDesc'   => $t->lpu?->descripcion,
+                'precio'    => $t->lpu ? (float) $t->lpu->{$campoPrecio} : 0,
+                'mats'      => $t->materiales->map(fn ($m) => [
+                    'codigo'   => $m->material?->codigo,
+                    'nombre'   => $m->material?->descripcion,
+                    'cantidad' => (float) $m->cantidad,
+                ])->values(),
+                'incluido'  => $incluido,
+            ];
+        };
+
+        $seleccionables = $incluidos->map(fn ($t) => $map($t, true))
+            ->concat($candidatos->map(fn ($t) => $map($t, false)))
+            ->values();
+
+        return view('admin.trabajos.periodos.show', compact('periodo', 'seleccionables'));
     }
 
     public function updateMeta(Request $request, string $id)
@@ -130,11 +124,18 @@ class PeriodoCertificacionController extends Controller
 
         // No permitir cambiar la categoría si ya hay trabajos asignados (evita mezclar MANT/OBRA)
         if ($data['categoria'] !== $periodo->categoria->value && $periodo->trabajos()->exists()) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['ok' => false, 'error' => 'No podés cambiar la categoría con trabajos ya asignados.'], 422);
+            }
             return redirect()->back()->withInput()
                 ->withErrors(['error' => 'No podés cambiar la categoría con trabajos ya asignados. Quitalos primero.']);
         }
 
         $periodo->update($data);
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json(['ok' => true]);
+        }
 
         return redirect()->back()->with('success', 'Datos de la certificación actualizados.');
     }
@@ -159,26 +160,70 @@ class PeriodoCertificacionController extends Controller
     }
 
     /**
-     * Agrega al período los trabajos seleccionados. Re-valida server-side contra
-     * candidatosQuery: solo se asignan ids que sigan siendo candidatos válidos.
+     * Cuenta cuántos trabajos coincidirían con los criterios de un período nuevo
+     * (para el conteo en vivo de la pantalla de creación). Devuelve JSON.
      */
-    public function agregarSeleccionados(Request $request, string $id)
+    public function contarCandidatos(Request $request)
+    {
+        $data = $request->validate([
+            'fecha_desde'  => 'required|date',
+            'fecha_hasta'  => 'required|date',
+            'categoria'    => 'required|in:mantenimiento,obras',
+            'cuadrilla_id' => 'nullable|integer',
+        ]);
+
+        $query = Trabajo::whereNull('periodo_id')
+            ->where('estado', EstadoTrabajo::APROBADO->value)
+            ->where('categoria', $data['categoria'])
+            ->whereBetween('fecha', [$data['fecha_desde'], $data['fecha_hasta']]);
+
+        if (!empty($data['cuadrilla_id'])) {
+            $query->where('cuadrilla_id', $data['cuadrilla_id']);
+        }
+
+        return response()->json(['count' => $query->count()]);
+    }
+
+    /**
+     * Guarda la selección de trabajos del período: reconcilia periodo_id según los
+     * ids marcados. Solo agrega candidatos válidos (re-validados server-side) y solo
+     * quita trabajos que estaban en este período.
+     */
+    public function guardarSeleccion(Request $request, string $id)
     {
         $periodo = PeriodoCertificacion::findOrFail($id);
         abort_if($periodo->estado !== 'abierto', 403, 'El período no está abierto.');
 
-        $data = $request->validate([
-            'trabajos'   => 'required|array',
-            'trabajos.*' => 'integer',
-        ], [
-            'trabajos.required' => 'Seleccioná al menos un trabajo para agregar.',
+        $request->validate([
+            'incluidos'   => 'nullable|array',
+            'incluidos.*' => 'integer',
         ]);
 
-        $n = $this->candidatosQuery($periodo)
-            ->whereIn('id', $data['trabajos'])
-            ->update(['periodo_id' => $periodo->id]);
+        $incluidos    = collect($request->input('incluidos', []))->map(fn ($v) => (int) $v);
+        $candidateIds = $this->candidatosQuery($periodo)->pluck('id');
+        $asignadosIds = $periodo->trabajos()->pluck('id');
 
-        return redirect()->back()->with('success', "Se agregaron $n trabajo(s) al período.");
+        DB::transaction(function () use ($periodo, $incluidos, $candidateIds, $asignadosIds) {
+            // Agregar: candidatos válidos que quedaron marcados
+            $aAgregar = $incluidos->intersect($candidateIds);
+            if ($aAgregar->isNotEmpty()) {
+                Trabajo::whereIn('id', $aAgregar)->update(['periodo_id' => $periodo->id]);
+            }
+            // Quitar: los que estaban en el período y ya no están marcados
+            $aQuitar = $asignadosIds->diff($incluidos);
+            if ($aQuitar->isNotEmpty()) {
+                Trabajo::whereIn('id', $aQuitar)->where('periodo_id', $periodo->id)
+                    ->update(['periodo_id' => null]);
+            }
+        });
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json(['ok' => true, 'incluidos' => $incluidos->intersect(
+                $candidateIds->merge($asignadosIds)
+            )->count()]);
+        }
+
+        return redirect()->back()->with('success', 'Selección de trabajos guardada.');
     }
 
     public function quitarTrabajo(string $id, string $trabajoId)
@@ -305,14 +350,25 @@ class PeriodoCertificacionController extends Controller
 
     public function exportar(Request $request, string $id, CertificacionExcelService $servicio)
     {
-        $request->validate([
-            'archivo' => 'required|file|mimes:xlsx,xls|max:51200',
+        $data = $request->validate([
+            'archivo'           => 'required|file|mimes:xlsx,xls|max:51200',
+            'obra'              => 'nullable|string|max:150',
+            'pep'               => 'nullable|string|max:60',
+            'descripcion'       => 'nullable|string|max:255',
+            'supervisor_teco'   => 'nullable|string|max:120',
+            'contratista'       => 'nullable|string|max:120',
+            'certif_numero'     => 'nullable|string|max:60',
+            'fecha_inicio_obra' => 'nullable|date',
+            'fecha_fin_obra'    => 'nullable|date',
         ], [
             'archivo.required' => 'Subí la plantilla Excel de Telecom.',
             'archivo.mimes'    => 'El archivo debe ser .xlsx o .xls.',
         ]);
 
         $periodo = PeriodoCertificacion::findOrFail($id);
+
+        // Persistir los datos de la certificación cargados en el drawer antes de generar
+        $periodo->update(collect($data)->except('archivo')->toArray());
 
         try {
             $ruta = $servicio->generar($periodo, $request->file('archivo')->getRealPath());

@@ -11,8 +11,12 @@ use Spatie\Permission\PermissionRegistrar;
  *
  * Agrega index_own / edit_own / show_own (ver/editar/ver-detalle SOLO los
  * trabajos de la cuadrilla del usuario) junto a los ya existentes index/edit/show
- * (que pasan a significar "todos"). Migración de datos NO destructiva: no borra
- * roles ni usuarios (a diferencia del RoleAndPermissionSeeder).
+ * (que pasan a significar "todos"). Migración de datos NO destructiva.
+ *
+ * Es AUTOSUFICIENTE: crea todo el set de permisos de trabajos_ordenes de forma
+ * idempotente (en prod pueden faltar los base si el RoleAndPermissionSeeder —que
+ * es destructivo— nunca se corrió) y NO usa hasPermissionTo() sobre permisos que
+ * podrían no existir (eso lanza PermissionDoesNotExist).
  */
 return new class extends Migration
 {
@@ -20,18 +24,26 @@ return new class extends Migration
     {
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        $nuevos = [
+        // Set completo del módulo (idempotente).
+        $todos = [
+            'trabajos_ordenes.index',
             'trabajos_ordenes.index_own',
+            'trabajos_ordenes.create',
+            'trabajos_ordenes.edit',
             'trabajos_ordenes.edit_own',
+            'trabajos_ordenes.show',
             'trabajos_ordenes.show_own',
+            'trabajos_ordenes.trash',
+            'trabajos_ordenes.approve',
         ];
-        foreach ($nuevos as $name) {
+        foreach ($todos as $name) {
             Permission::firstOrCreate(['name' => $name, 'guard_name' => 'web']);
         }
 
-        // Actualizar las acciones del módulo (para la pantalla de roles).
-        Module::where('name', 'trabajos_ordenes')->update([
-            'actions' => [
+        // Acciones del módulo (para la pantalla de roles).
+        Module::updateOrCreate(
+            ['name' => 'trabajos_ordenes'],
+            ['nombre_es' => 'Carga de Trabajos', 'actions' => [
                 'index'     => 'trabajos_ordenes.index',
                 'index_own' => 'trabajos_ordenes.index_own',
                 'create'    => 'trabajos_ordenes.create',
@@ -41,24 +53,27 @@ return new class extends Migration
                 'show_own'  => 'trabajos_ordenes.show_own',
                 'trash'     => 'trabajos_ordenes.trash',
                 'approve'   => 'trabajos_ordenes.approve',
-            ],
-        ]);
+            ]]
+        );
 
-        // El admin conserva TODO.
+        // El admin conserva TODO el set.
         if ($admin = Role::where('name', 'admin')->first()) {
-            $admin->givePermissionTo($nuevos);
+            $admin->givePermissionTo($todos);
         }
 
         // El rol "user" (técnico por defecto) pasa de "todos" a "solo su cuadrilla":
-        // se cambia index->index_own, edit->edit_own, show->show_own si los tenía.
+        // index->index_own, edit->edit_own, show->show_own, SOLO para los que ya tenía.
+        // Se lee la relación permissions (no hasPermissionTo) para no explotar si el
+        // permiso viejo no existe.
         if ($user = Role::where('name', 'user')->first()) {
+            $actuales = $user->permissions->pluck('name')->all();
             $map = [
                 'trabajos_ordenes.index' => 'trabajos_ordenes.index_own',
                 'trabajos_ordenes.edit'  => 'trabajos_ordenes.edit_own',
                 'trabajos_ordenes.show'  => 'trabajos_ordenes.show_own',
             ];
             foreach ($map as $viejo => $nuevo) {
-                if ($user->hasPermissionTo($viejo)) {
+                if (in_array($viejo, $actuales, true)) {
                     $user->revokePermissionTo($viejo);
                     $user->givePermissionTo($nuevo);
                 }
@@ -72,17 +87,20 @@ return new class extends Migration
     {
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // Revertir el rol "user" a los permisos "todos".
+        // Revertir el rol "user" a los permisos "todos" (solo los que tenga).
         if ($user = Role::where('name', 'user')->first()) {
+            $actuales = $user->permissions->pluck('name')->all();
             $map = [
                 'trabajos_ordenes.index_own' => 'trabajos_ordenes.index',
                 'trabajos_ordenes.edit_own'  => 'trabajos_ordenes.edit',
                 'trabajos_ordenes.show_own'  => 'trabajos_ordenes.show',
             ];
             foreach ($map as $nuevo => $viejo) {
-                if ($user->hasPermissionTo($nuevo)) {
+                if (in_array($nuevo, $actuales, true)) {
                     $user->revokePermissionTo($nuevo);
-                    $user->givePermissionTo($viejo);
+                    if (Permission::where('name', $viejo)->where('guard_name', 'web')->exists()) {
+                        $user->givePermissionTo($viejo);
+                    }
                 }
             }
         }
@@ -92,18 +110,6 @@ return new class extends Migration
             'trabajos_ordenes.edit_own',
             'trabajos_ordenes.show_own',
         ])->delete();
-
-        // Restaurar las acciones originales del módulo.
-        Module::where('name', 'trabajos_ordenes')->update([
-            'actions' => [
-                'index'   => 'trabajos_ordenes.index',
-                'create'  => 'trabajos_ordenes.create',
-                'edit'    => 'trabajos_ordenes.edit',
-                'trash'   => 'trabajos_ordenes.trash',
-                'show'    => 'trabajos_ordenes.show',
-                'approve' => 'trabajos_ordenes.approve',
-            ],
-        ]);
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
     }

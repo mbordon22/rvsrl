@@ -40,10 +40,16 @@ class Helpers
         switch ($permission){
             case 'index':
                 return 'Ver';
+            case 'index_own':
+                return 'Ver (solo los de su cuadrilla)';
             case 'create':
                 return 'Crear';
             case 'edit':
                 return 'Editar';
+            case 'edit_own':
+                return 'Editar (solo los de su cuadrilla)';
+            case 'show_own':
+                return 'Ver detalle (solo los de su cuadrilla)';
             case 'trash':
                 return 'Eliminar';
             case 'restore':

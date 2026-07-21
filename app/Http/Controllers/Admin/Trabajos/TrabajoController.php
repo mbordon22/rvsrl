@@ -49,6 +49,11 @@ class TrabajoController extends Controller
 
     public function create()
     {
+        if (!auth()->user()->can('create', Trabajo::class)) {
+            return redirect()->route('admin.trabajos.ordenes.index')
+                ->withErrors(['error' => 'No tenés permiso para cargar trabajos.']);
+        }
+
         $cuadrilla = $this->cuadrillaDelUsuario();
         $esAdmin   = auth()->user()->hasRole('admin');
 
@@ -62,6 +67,11 @@ class TrabajoController extends Controller
 
     public function store(CreateTrabajoRequest $request)
     {
+        if (!auth()->user()->can('create', Trabajo::class)) {
+            return redirect()->route('admin.trabajos.ordenes.index')
+                ->withErrors(['error' => 'No tenés permiso para cargar trabajos.']);
+        }
+
         $esAdmin   = auth()->user()->hasRole('admin');
         $cuadrilla = $esAdmin && $request->cuadrilla_id
             ? Cuadrilla::find($request->cuadrilla_id)
@@ -105,6 +115,13 @@ class TrabajoController extends Controller
     public function show(string $id)
     {
         $trabajo = Trabajo::with(['cuadrilla', 'vehiculo', 'empleados', 'lpu', 'materiales.material', 'aprobadoPor'])->findOrFail($id);
+
+        // Ver detalle: todos (show) o solo los de su cuadrilla (show_own).
+        if (!auth()->user()->can('view', $trabajo)) {
+            return redirect()->route('admin.trabajos.ordenes.index')
+                ->withErrors(['error' => 'No tenés permiso para ver este trabajo.']);
+        }
+
         return view('admin.trabajos.ordenes.show', compact('trabajo'));
     }
 
@@ -243,6 +260,12 @@ class TrabajoController extends Controller
     {
         $trabajo   = Trabajo::with(['empleados', 'materiales.material'])->findOrFail($id);
 
+        // Editar: todos (edit) o solo los de su cuadrilla (edit_own).
+        if (!auth()->user()->can('update', $trabajo)) {
+            return redirect()->route('admin.trabajos.ordenes.index')
+                ->withErrors(['error' => 'No tenés permiso para editar este trabajo.']);
+        }
+
         if (!$this->puedeEditar($trabajo)) {
             return redirect()->route('admin.trabajos.ordenes.index')
                 ->withErrors(['error' => 'Este trabajo ya fue aprobado; solo un supervisor puede editarlo.']);
@@ -261,6 +284,12 @@ class TrabajoController extends Controller
     {
         try {
             $trabajo = Trabajo::findOrFail($id);
+
+            // Editar: todos (edit) o solo los de su cuadrilla (edit_own).
+            if (!auth()->user()->can('update', $trabajo)) {
+                return redirect()->route('admin.trabajos.ordenes.index')
+                    ->withErrors(['error' => 'No tenés permiso para editar este trabajo.']);
+            }
 
             if (!$this->puedeEditar($trabajo)) {
                 return redirect()->route('admin.trabajos.ordenes.index')

@@ -137,4 +137,19 @@ class User extends Authenticatable implements HasMedia
     {
         return $this->hasMany(Trabajo::class);
     }
+
+    /**
+     * Ruta de inicio tras loguearse, según los permisos del usuario.
+     * El dashboard está detrás de permiso (dashboard.index): quien no lo tenga
+     * (p.ej. un técnico) aterriza en la Carga de Trabajos.
+     */
+    public function homeRoute(): string
+    {
+        if ($this->can('dashboard.index')) {
+            return 'admin.dashboard';
+        }
+        // Fallback: la Carga de Trabajos no tiene gate a nivel ruta, así que
+        // siempre es alcanzable (evita un loop de redirección con el dashboard).
+        return 'admin.trabajos.ordenes.index';
+    }
 }

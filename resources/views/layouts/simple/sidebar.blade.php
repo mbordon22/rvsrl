@@ -8,19 +8,19 @@
 
 <!-- Page Sidebar Start-->
 <div class="sidebar-wrapper" data-layout="stroke-svg">
-    <div class="logo-wrapper"><a href="{{ route('admin.dashboard') }}"><img class="img-fluid"
+    <div class="logo-wrapper"><a href="{{ url('/') }}"><img class="img-fluid"
                 src="{{ asset('assets/images/logo/logo_sidebar.jpg') }}" style="50px" alt=""></a>
         <div class="back-btn"><i class="fa fa-angle-left"> </i></div>
         <div class="toggle-sidebar"><i class="status_toggle middle sidebar-toggle" data-feather="grid"> </i>
         </div>
     </div>
-    <div class="logo-icon-wrapper"><a href="{{ route('admin.dashboard') }}"><img class="img-fluid"
+    <div class="logo-icon-wrapper"><a href="{{ url('/') }}"><img class="img-fluid"
                 src="{{ asset('assets/images/logo/logo-icon.png') }}" alt=""></a></div>
     <nav class="sidebar-main">
         <div class="left-arrow" id="left-arrow"><i data-feather="arrow-left"></i></div>
         <div id="sidebar-menu">
             <ul class="sidebar-links" id="simple-bar">
-                <li class="back-btn"><a href="{{ route('admin.dashboard') }}"><img class="img-fluid"
+                <li class="back-btn"><a href="{{ url('/') }}"><img class="img-fluid"
                             src="{{ asset('assets/images/logo/logo-icon.png') }}" alt=""></a>
                     <div class="mobile-back text-end"> <span>Back </span><i class="fa fa-angle-right ps-2"
                             aria-hidden="true"></i></div>
@@ -35,6 +35,7 @@
                         <h6 class="lan-1">General</h6>
                     </div>
                 </li>
+                @can('dashboard.index')
                 <li class="sidebar-list"><i class="fa fa-thumb-tack"> </i><a class="sidebar-link sidebar-title link-nav"
                         href="{{ route('admin.dashboard') }}">
                         <svg class="stroke-icon">
@@ -44,6 +45,7 @@
                             <use href="{{ asset('assets/svg/icon-sprite.svg#fill-home') }}"></use>
                         </svg><span class="lan-3">Dashboard </span></a>
                 </li>
+                @endcan
                 @canany(['user.index', 'role.index'])
                 <li class="sidebar-list"><i class="fa fa-thumb-tack"></i><a class="sidebar-link sidebar-title"
                         href="javascript:void(0)">
@@ -143,7 +145,7 @@
                     </ul>
                 </li> --}}
                 @endcan
-                @canany(['trabajos_ordenes.index', 'trabajos_periodos.index', 'listado_cuadrillas.index'])
+                @canany(['trabajos_ordenes.index', 'trabajos_ordenes.index_own', 'trabajos_periodos.index', 'listado_cuadrillas.index'])
                 <li class="sidebar-list"><i class="fa fa-thumb-tack"></i><a class="sidebar-link sidebar-title"
                     href="javascript:void(0)">
                     <svg class="stroke-icon">
@@ -153,9 +155,9 @@
                         <use href="{{ asset('assets/svg/icon-sprite.svg#fill-task') }}"></use>
                     </svg><span class="lan-7-1">Trabajos</span></a>
                     <ul class="sidebar-submenu">
-                        @can('trabajos_ordenes.index')
+                        @canany(['trabajos_ordenes.index', 'trabajos_ordenes.index_own'])
                         <li><a href="{{ route('admin.trabajos.ordenes.index') }}">Carga de Trabajos</a></li>
-                        @endcan
+                        @endcanany
                         @can('trabajos_periodos.index')
                         <li><a href="{{ route('admin.trabajos.periodos.index') }}">Certificación de trabajos</a></li>
                         @endcan

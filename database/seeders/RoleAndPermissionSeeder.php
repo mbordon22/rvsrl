@@ -33,6 +33,13 @@ class RoleAndPermissionSeeder extends Seeder
         // Definir modulos y acciones actuales
         $modules = [
             [
+                'name' => 'dashboard',
+                'nombre_es' => 'Dashboard',
+                'actions' => [
+                    'index' => 'dashboard.index',
+                ],
+            ],
+            [
                 'name' => 'users',
                 'nombre_es' => 'Usuarios',
                 'actions' => [
@@ -177,12 +184,15 @@ class RoleAndPermissionSeeder extends Seeder
                 'name' => 'trabajos_ordenes',
                 'nombre_es' => 'Carga de Trabajos',
                 'actions' => [
-                    'index'   => 'trabajos_ordenes.index',
-                    'create'  => 'trabajos_ordenes.create',
-                    'edit'    => 'trabajos_ordenes.edit',
-                    'trash'   => 'trabajos_ordenes.trash',
-                    'show'    => 'trabajos_ordenes.show',
-                    'approve' => 'trabajos_ordenes.approve',
+                    'index'     => 'trabajos_ordenes.index',
+                    'index_own' => 'trabajos_ordenes.index_own',
+                    'create'    => 'trabajos_ordenes.create',
+                    'edit'      => 'trabajos_ordenes.edit',
+                    'edit_own'  => 'trabajos_ordenes.edit_own',
+                    'show'      => 'trabajos_ordenes.show',
+                    'show_own'  => 'trabajos_ordenes.show_own',
+                    'trash'     => 'trabajos_ordenes.trash',
+                    'approve'   => 'trabajos_ordenes.approve',
                 ],
             ],
             [
@@ -246,7 +256,8 @@ class RoleAndPermissionSeeder extends Seeder
             'vehiculo.index', 'vehiculo.create', 'vehiculo.edit', 'vehiculo.destroy', 'vehiculo.restore', 'vehiculo.forceDelete',
             'combustible.index', 'combustible.create', 'combustible.edit', 'combustible.trash',
             'epp.index', 'epp.create', 'epp.edit', 'epp.trash',
-            'trabajos_ordenes.index', 'trabajos_ordenes.create', 'trabajos_ordenes.edit', 'trabajos_ordenes.show',
+            // Rol "user" por defecto = técnico: solo ve/edita los trabajos de su cuadrilla.
+            'trabajos_ordenes.index_own', 'trabajos_ordenes.create', 'trabajos_ordenes.edit_own', 'trabajos_ordenes.show_own',
         ];
         $userRole->syncPermissions(Permission::whereIn('name', $userPermissions)->get());
 

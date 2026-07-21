@@ -119,7 +119,7 @@
                                 <select id="f_estado">
                                     <option value="">Todos los estados</option>
                                     @foreach($estadosFiltro as $val => $lab)
-                                        <option value="{{ $val }}">{{ $lab }}</option>
+                                        <option value="{{ $val }}" {{ request('estado') == $val ? 'selected' : '' }}>{{ $lab }}</option>
                                     @endforeach
                                 </select>
                             </label>

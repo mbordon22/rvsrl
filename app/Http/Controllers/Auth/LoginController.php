@@ -31,9 +31,9 @@ class LoginController extends Controller
     /**
      * Where to redirect users after login.
      */
-    public function authenticated()
+    public function authenticated($request, $user)
     {
-        return redirect()->route('admin.dashboard');
+        return redirect()->route($user->homeRoute());
     }
 
     /**

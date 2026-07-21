@@ -21,8 +21,10 @@ class MaterialController extends Controller
      */
     public function index(MaterialDataTable $dataTable)
     {
-        $materiales = Material::all();
-        return $dataTable->render('admin.inventarios.materiales.index', compact('materiales'));
+        $materiales        = Material::all();
+        $ultimaImportacion = Importacion::where('tipo', 'materiales')->latest()->first();
+        $totalRegistros    = Material::count();
+        return $dataTable->render('admin.inventarios.materiales.index', compact('materiales', 'ultimaImportacion', 'totalRegistros'));
     }
 
     /**

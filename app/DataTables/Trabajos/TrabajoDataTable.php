@@ -14,6 +14,9 @@ class TrabajoDataTable extends DataTable
 {
     public function dataTable(QueryBuilder $query): EloquentDataTable
     {
+        // Cuadrillas del usuario (para resolver permisos "solo propios" por fila).
+        $misCuadrillas = auth()->user()->cuadrillas()->pluck('cuadrillas.id')->all();
+
         return (new EloquentDataTable($query))
             ->editColumn('fecha', function ($row) {
                 return $row->fecha ? $row->fecha->format('d/m/Y') : '-';
@@ -47,13 +50,20 @@ class TrabajoDataTable extends DataTable
                 return '<span class="pill-estado" style="background:' . $row->estado->color() . '">'
                     . e($row->estado->label()) . '</span>';
             })
-            ->addColumn('action', function ($row) {
+            ->addColumn('action', function ($row) use ($misCuadrillas) {
                 $user      = auth()->user();
                 $bloqueado = in_array($row->estado?->value, [
                     \App\Enums\EstadoTrabajo::APROBADO->value,
                     \App\Enums\EstadoTrabajo::CERTIFICADO->value,
                 ], true);
                 $pendiente = $row->estado?->value === \App\Enums\EstadoTrabajo::PENDIENTE->value;
+
+                // ¿El trabajo es de una cuadrilla del usuario? (para permisos "solo propios")
+                $esSuya    = in_array($row->cuadrilla_id, $misCuadrillas, true);
+                $puedeVer  = $user->can('trabajos_ordenes.show')
+                    || ($user->can('trabajos_ordenes.show_own') && $esSuya);
+                $puedeEdit = $user->can('trabajos_ordenes.edit')
+                    || ($user->can('trabajos_ordenes.edit_own') && $esSuya);
 
                 // SVGs (del diseño) para render confiable en el HTML que inyecta DataTables
                 $svgCheck = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
@@ -75,13 +85,13 @@ class TrabajoDataTable extends DataTable
                         . 'class="act-icon act-ver" title="Revisar">' . $svgCheck . '</a>';
                 }
 
-                if ($user->can('trabajos_ordenes.show')) {
+                if ($puedeVer) {
                     $btns[] = '<a href="' . route('admin.trabajos.ordenes.show', $row->id) . '" '
                         . 'class="act-icon act-ver" title="Ver detalle">' . $svgEye . '</a>';
                 }
 
                 // Un trabajo aprobado solo lo puede editar quien tenga permiso de aprobación
-                if ($user->can('trabajos_ordenes.edit') && (!$bloqueado || $user->can('trabajos_ordenes.approve'))) {
+                if ($puedeEdit && (!$bloqueado || $user->can('trabajos_ordenes.approve'))) {
                     $btns[] = '<a href="' . route('admin.trabajos.ordenes.edit', $row->id) . '" '
                         . 'class="act-icon act-editar" title="Editar">' . $svgEdit . '</a>';
                 }
@@ -103,8 +113,9 @@ class TrabajoDataTable extends DataTable
     {
         $query = $model->newQuery()->with(['cuadrilla']);
 
-        // Si no es admin, solo ve los trabajos de sus cuadrillas
-        if (!auth()->user()->hasRole('admin')) {
+        // Alcance por permiso: quien no tenga "ver todos" (index) solo ve los
+        // trabajos de sus cuadrillas (index_own).
+        if (!auth()->user()->can('trabajos_ordenes.index')) {
             $cuadrillaIds = auth()->user()->cuadrillas()->pluck('cuadrillas.id');
             $query->whereIn('cuadrilla_id', $cuadrillaIds);
         }

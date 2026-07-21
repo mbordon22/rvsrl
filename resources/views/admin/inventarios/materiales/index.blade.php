@@ -42,6 +42,31 @@
                     </div>
                 </div>
                 @endcan
+
+                <div class="col-xxl-5 col-sm-12 box-col-12 d-flex align-items-center">
+                    <div class="card user-role w-100 mb-0">
+                        <div class="card-body border-b-secondary border-2 py-3">
+                            <div class="row text-center">
+                                <div class="col-6 border-end">
+                                    <h6 class="mb-1 text-muted">Última importación</h6>
+                                    <h5 class="mb-0 fw-bold text-success">
+                                        {{ $ultimaImportacion ? $ultimaImportacion->created_at->format('d/m/Y H:i') : '—' }}
+                                    </h5>
+                                </div>
+                                <div class="col-6">
+                                    <h6 class="mb-1 text-muted">Total materiales</h6>
+                                    <h5 class="mb-0 fw-bold">{{ number_format($totalRegistros, 0, ',', '.') }}</h5>
+                                </div>
+                            </div>
+                            <div class="text-center mt-2">
+                                <a href="{{ route('admin.importaciones.index') }}" class="text-decoration-none small">
+                                    <i data-feather="clock" style="width:14px;height:14px;"></i> Ver historial de importaciones
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 @can('listado_materiales.import')
                 <div class="col-xxl-2 col-sm-6 box-col-6">
                     <div class="card user-role">

@@ -30,13 +30,14 @@ Auth::routes(['register' => false, 'verify' => false]);
 
 Route::get('/', function () {
     if (Auth::check()) {
-        return redirect()->route('admin.dashboard');
+        return redirect()->route(Auth::user()->homeRoute());
     }
     return redirect()->route('login');
 });
 
 Route::group(['middleware' => ['auth'], 'as' => 'admin.', 'prefix' => 'admin'], function () {
-    // Dashboard
+    // Dashboard (el permiso dashboard.index se valida dentro del controller para
+    // poder redirigir con gracia a los que no lo tienen, ya que es la "home").
     Route::get('dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
 
     // Users

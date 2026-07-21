@@ -44,6 +44,7 @@
                             <use href="{{ asset('assets/svg/icon-sprite.svg#fill-home') }}"></use>
                         </svg><span class="lan-3">Dashboard </span></a>
                 </li>
+                @canany(['user.index', 'role.index'])
                 <li class="sidebar-list"><i class="fa fa-thumb-tack"></i><a class="sidebar-link sidebar-title"
                         href="javascript:void(0)">
                         <svg class="stroke-icon">
@@ -61,6 +62,7 @@
                         @endcan
                     </ul>
                 </li>
+                @endcanany
                 @canany(['vehiculo.index', 'combustible.index'])
                     <li class="sidebar-list"><i class="fa fa-thumb-tack"></i><a class="sidebar-link sidebar-title"
                             href="javascript:void(0)">
@@ -141,7 +143,7 @@
                     </ul>
                 </li> --}}
                 @endcan
-                @canany(['trabajos_ordenes.index', 'trabajos_periodos.index', 'listado_lpu.index', 'listado_materiales.index', 'listado_cuadrillas.index'])
+                @canany(['trabajos_ordenes.index', 'trabajos_periodos.index', 'listado_cuadrillas.index'])
                 <li class="sidebar-list"><i class="fa fa-thumb-tack"></i><a class="sidebar-link sidebar-title"
                     href="javascript:void(0)">
                     <svg class="stroke-icon">
@@ -155,16 +157,35 @@
                         <li><a href="{{ route('admin.trabajos.ordenes.index') }}">Carga de Trabajos</a></li>
                         @endcan
                         @can('trabajos_periodos.index')
-                        <li><a href="{{ route('admin.trabajos.periodos.index') }}">Certificación trabajos</a></li>
+                        <li><a href="{{ route('admin.trabajos.periodos.index') }}">Certificación de trabajos</a></li>
+                        @endcan
+                        @can('listado_cuadrillas.index')
+                        <li><a href="{{ route('admin.inventarios.cuadrillas.index') }}">Cuadrillas</a></li>
+                        @endcan
+                    </ul>
+                </li>
+                @endcanany
+                @canany(['listado_materiales.index', 'listado_lpu.index', 'trabajos_reglas_materiales.index', 'trabajos_reglas_lpu.index'])
+                <li class="sidebar-list"><i class="fa fa-thumb-tack"></i><a class="sidebar-link sidebar-title"
+                    href="javascript:void(0)">
+                    <svg class="stroke-icon">
+                        <use href="{{ asset('assets/svg/icon-sprite.svg#stroke-file') }}"></use>
+                    </svg>
+                    <svg class="fill-icon">
+                        <use href="{{ asset('assets/svg/icon-sprite.svg#fill-file') }}"></use>
+                    </svg><span class="lan-7-1">Parámetros de Trabajos</span></a>
+                    <ul class="sidebar-submenu">
+                        @can('listado_materiales.index')
+                        <li><a href="{{ route('admin.inventarios.materiales.index') }}">Materiales</a></li>
                         @endcan
                         @can('listado_lpu.index')
                         <li><a href="{{ route('admin.trabajos.lpu.index') }}">LPU</a></li>
                         @endcan
-                        @can('listado_materiales.index')
-                        <li><a href="{{ route('admin.inventarios.materiales.index') }}">Materiales</a></li>
+                        @can('trabajos_reglas_materiales.index')
+                        <li><a href="{{ route('admin.trabajos.reglas-materiales.index') }}">Reglas de Materiales</a></li>
                         @endcan
-                        @can('listado_cuadrillas.index')
-                        <li><a href="{{ route('admin.inventarios.cuadrillas.index') }}">Cuadrillas</a></li>
+                        @can('trabajos_reglas_lpu.index')
+                        <li><a href="{{ route('admin.trabajos.reglas-lpu.index') }}">Reglas de LPU</a></li>
                         @endcan
                     </ul>
                 </li>

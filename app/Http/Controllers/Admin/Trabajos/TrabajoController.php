@@ -25,6 +25,7 @@ use App\Services\AsignadorLpuService;
 use App\Services\GeneradorMaterialesService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class TrabajoController extends Controller
 {
@@ -141,12 +142,24 @@ class TrabajoController extends Controller
 
         $aprobar = $request->input('accion') === 'aprobar';
 
-        // Validaciones extra al aprobar: OT obligatoria y categoría cargada.
+        // Validaciones extra al aprobar: OT obligatoria, única entre trabajos
+        // vigentes y categoría cargada.
         if ($aprobar) {
             $request->validate([
-                'ot' => 'required|string|max:50',
+                'ot' => [
+                    'required', 'string', 'max:50',
+                    // Única solo contra trabajos NO eliminados: la regla unique
+                    // consulta la tabla directo (sin el scope de SoftDeletes), así
+                    // que hay que excluir los borrados a mano con whereNull. Si la
+                    // OT quedó en un trabajo soft-deleted, se libera y se puede
+                    // reusar. Se ignora el propio registro.
+                    Rule::unique('trabajos', 'ot')
+                        ->ignore($trabajo->id)
+                        ->whereNull('deleted_at'),
+                ],
             ], [
                 'ot.required' => 'Debés cargar el número/código de OT para aprobar el trabajo.',
+                'ot.unique'   => 'La OT ya está registrada en otro trabajo. Verificá el número.',
             ]);
 
             if (!$request->input('categoria')) {
@@ -294,15 +307,25 @@ class TrabajoController extends Controller
      */
     public function aprobar(Request $request, string $id)
     {
+        $trabajo = Trabajo::findOrFail($id);
+
+        // OT obligatoria y única solo entre trabajos vigentes. La regla unique
+        // consulta la tabla directo (sin el scope de SoftDeletes), así que se
+        // excluyen los borrados con whereNull: una OT que quedó en un trabajo
+        // soft-deleted se libera y se puede reusar.
         $request->validate([
-            'ot' => 'required|string|max:50',
+            'ot' => [
+                'required', 'string', 'max:50',
+                Rule::unique('trabajos', 'ot')
+                    ->ignore($trabajo->id)
+                    ->whereNull('deleted_at'),
+            ],
         ], [
             'ot.required' => 'Debés cargar el número/código de OT para aprobar el trabajo.',
+            'ot.unique'   => 'La OT ya está registrada en otro trabajo. Verificá el número.',
         ]);
 
         try {
-            $trabajo = Trabajo::findOrFail($id);
-
             // La categoría (tipo de trabajo) es obligatoria para aprobar: define
             // en qué certificación (mantenimiento/obra) va a poder entrar.
             if (!$trabajo->categoria) {

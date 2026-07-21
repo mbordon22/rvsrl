@@ -196,6 +196,26 @@ class RoleAndPermissionSeeder extends Seeder
                     'export' => 'trabajos_periodos.export',
                 ],
             ],
+            [
+                'name' => 'trabajos_reglas_materiales',
+                'nombre_es' => 'Reglas de Materiales',
+                'actions' => [
+                    'index'  => 'trabajos_reglas_materiales.index',
+                    'create' => 'trabajos_reglas_materiales.create',
+                    'edit'   => 'trabajos_reglas_materiales.edit',
+                    'trash'  => 'trabajos_reglas_materiales.trash',
+                ],
+            ],
+            [
+                'name' => 'trabajos_reglas_lpu',
+                'nombre_es' => 'Reglas de LPU',
+                'actions' => [
+                    'index'  => 'trabajos_reglas_lpu.index',
+                    'create' => 'trabajos_reglas_lpu.create',
+                    'edit'   => 'trabajos_reglas_lpu.edit',
+                    'trash'  => 'trabajos_reglas_lpu.trash',
+                ],
+            ],
         ];
 
         // Crear o actualizar modulos y permisos

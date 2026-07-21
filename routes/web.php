@@ -23,6 +23,8 @@ use App\Http\Controllers\Admin\Inventarios\StockMaterialController;
 use App\Http\Controllers\Admin\Trabajos\LpuTipoTrabajoController;
 use App\Http\Controllers\Admin\Trabajos\TrabajoController;
 use App\Http\Controllers\Admin\Trabajos\PeriodoCertificacionController;
+use App\Http\Controllers\Admin\Trabajos\MaterialReglaController;
+use App\Http\Controllers\Admin\Trabajos\LpuReglaController;
 
 Auth::routes(['register' => false, 'verify' => false]);
 
@@ -299,6 +301,28 @@ Route::group(['middleware' => ['auth'], 'as' => 'admin.', 'prefix' => 'admin'], 
             Route::get('/{id}/trabajo/{trabajoId}/ajustar', [PeriodoCertificacionController::class, 'ajustarTrabajo'])->middleware('can:trabajos_periodos.edit')->name('ajustar');
             Route::put('/{id}/trabajo/{trabajoId}/ajustar', [PeriodoCertificacionController::class, 'guardarAjuste'])->middleware('can:trabajos_periodos.edit')->name('guardarAjuste');
             Route::post('/{id}/trabajo/{trabajoId}/regenerar', [PeriodoCertificacionController::class, 'regenerarMateriales'])->middleware('can:trabajos_periodos.edit')->name('regenerarMateriales');
+        });
+
+        // Reglas de materiales (configuración de cómo se sugieren los materiales)
+        Route::prefix('reglas-materiales')->name('reglas-materiales.')->group(function () {
+            Route::get('/', [MaterialReglaController::class, 'index'])->middleware('can:trabajos_reglas_materiales.index')->name('index');
+            Route::get('/materiales/buscar', [MaterialReglaController::class, 'buscarMateriales'])->middleware('can:trabajos_reglas_materiales.index')->name('buscarMateriales');
+            Route::post('/simular', [MaterialReglaController::class, 'simular'])->middleware('can:trabajos_reglas_materiales.index')->name('simular');
+            Route::post('/', [MaterialReglaController::class, 'store'])->middleware('can:trabajos_reglas_materiales.create')->name('store');
+            Route::put('/status/{id}', [MaterialReglaController::class, 'status'])->middleware('can:trabajos_reglas_materiales.edit')->name('status');
+            Route::put('/{id}', [MaterialReglaController::class, 'update'])->middleware('can:trabajos_reglas_materiales.edit')->name('update');
+            Route::delete('/{id}', [MaterialReglaController::class, 'destroy'])->middleware('can:trabajos_reglas_materiales.trash')->name('destroy');
+        });
+
+        // Reglas de LPU (configuración de cómo se asigna el código/precio LPU)
+        Route::prefix('reglas-lpu')->name('reglas-lpu.')->group(function () {
+            Route::get('/', [LpuReglaController::class, 'index'])->middleware('can:trabajos_reglas_lpu.index')->name('index');
+            Route::get('/lpu/buscar', [LpuReglaController::class, 'buscarLpu'])->middleware('can:trabajos_reglas_lpu.index')->name('buscarLpu');
+            Route::post('/simular', [LpuReglaController::class, 'simular'])->middleware('can:trabajos_reglas_lpu.index')->name('simular');
+            Route::post('/', [LpuReglaController::class, 'store'])->middleware('can:trabajos_reglas_lpu.create')->name('store');
+            Route::put('/status/{id}', [LpuReglaController::class, 'status'])->middleware('can:trabajos_reglas_lpu.edit')->name('status');
+            Route::put('/{id}', [LpuReglaController::class, 'update'])->middleware('can:trabajos_reglas_lpu.edit')->name('update');
+            Route::delete('/{id}', [LpuReglaController::class, 'destroy'])->middleware('can:trabajos_reglas_lpu.trash')->name('destroy');
         });
 
         Route::prefix('lpu')->name('lpu.')->group(function () {

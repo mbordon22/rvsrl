@@ -66,6 +66,8 @@ class Helpers
                 return 'Transferencia';
             case 'ajuste':
                 return 'Ajuste';
+            case 'show':
+                return 'Ver detalle';
             default:
                 return 'Acción no definida';
         }
